@@ -485,6 +485,7 @@ def page_arena():
 def page_leaderboard():
     st.title("🏆 Warrior Leaderboard")
     st.caption("#### Recognizing excellence across the battlefield.")
+    st.markdown("#### ")
     df = load_data()
     if df.empty:
         st.info("No projects submitted yet.")
