@@ -14,13 +14,24 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CSS HIDE FUNCTION ---
+# --- HIDE STREAMLIT BRANDING ---
 def hide_streamlit_style():
     hide_st_style = """
         <style>
+        /* Hide the top right menu (three dots) */
         #MainMenu {visibility: hidden;}
+        
+        /* Hide the footer (Made with Streamlit) */
         footer {visibility: hidden;}
-        header {visibility: hidden;}
+        
+        /* Hide the Deploy button */
+        .stDeployButton {display:none;}
+        
+        /* OPTIONAL: Hide the colored line at the top of the screen */
+        /* header {visibility: hidden;} <--- DO NOT USE THIS, it hides the hamburger */
+        
+        /* If you really want to hide the decoration but keep hamburger, use this: */
+        [data-testid="stDecoration"] {display: none;}
         </style>
         """
     st.markdown(hide_st_style, unsafe_allow_html=True)
