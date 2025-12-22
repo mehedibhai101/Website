@@ -14,6 +14,33 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- CLEAN UI: HIDE BRANDING BUT KEEP SIDEBAR TOGGLE ---
+hide_st_style = """
+            <style>
+            /* Hide the Streamlit Multi-page nav and branding */
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            .stAppDeployButton {display: none;}
+            .viewerBadge_container__1QSob {display: none !important;}
+            
+            /* Hide the header background and decoration line */
+            #stDecoration {display:none !important;}
+            [data-testid="stHeader"] {
+                background: rgba(0,0,0,0);
+                color: rgba(0,0,0,0);
+            }
+            
+            /* ENSURE THE SIDEBAR TOGGLE REMAINS VISIBLE AND CLICKABLE */
+            [data-testid="stSidebarCollapseButton"] {
+                visibility: visible !important;
+                color: #0068c9 !important; /* Makes the icon blue so you can see it */
+                background-color: rgba(255, 255, 255, 0.5) !important;
+                border-radius: 5px;
+            }
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # Constants
 PROJECTS_DIR = 'uploaded_projects'
 PROFILES_DIR = 'user_profiles'
