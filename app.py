@@ -87,7 +87,7 @@ def sidebar_nav():
             with col_img:
                 if has_custom_pic: st.image(os.path.join(PROFILES_DIR, pic), width=100)
                 else:
-                    icon = "https://cdn-icons-png.flaticon.com/512/1995/1995531.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1077/1077114.png"
+                    icon = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1995/1995531.png"
                     st.image(icon, width=100)
             
             with col_del:
@@ -179,7 +179,7 @@ def sidebar_nav():
                     else: st.error(msg)
             
             with t_inst:
-                admin_key = st.text_input("Access Key", type="password")
+                admin_key = st.text_input("Put Master Key", type="password")
                 if st.button("Unlock Instructor Mode", use_container_width=True):
                     if admin_key == ADMIN_PASS:
                         st.session_state.user = {"username": "admin", "full_name": "Lead Instructor", "role": "Instructor", "profile_pic": None}
@@ -328,8 +328,6 @@ def page_my_projects():
         selected_cat = st.selectbox("Filter by Category", categories, key="my_cat_filter")
     with col2:
         search_query = st.text_input("Search my titles", placeholder="Enter keywords...", key="my_search_filter")
-
-    st.divider()
 
     display_df = my_df.copy()
     if selected_cat != "All Projects":
