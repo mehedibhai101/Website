@@ -76,32 +76,32 @@ def sidebar_nav():
         # LOGO & BRANDING
         st.image("https://cdn-icons-png.flaticon.com/512/2920/2920349.png", width=50)
             
-            # --- IF USER IS LOGGED IN ---
-            if 'user' in st.session_state:
-                st.title("Arena Menu")
-                u = st.session_state.user
-                pic = u.get('profile_pic')
-                has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
-                
-                col_img, col_del = st.columns([2, 1])
-                with col_img:
-                    if has_custom_pic: st.image(os.path.join(PROFILES_DIR, pic), width=100)
-                    else:
-                        icon = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1995/1995531.png"
-                        st.image(icon, width=100)
-                
-                with col_del:
-                    if has_custom_pic:
-                        with st.popover("🗑️", help="Remove custom photo"):
-                            st.warning("Delete photo?")
-                            if st.button("Confirm Delete", key="confirm_pic_del", type="primary"):
-                                os.remove(os.path.join(PROFILES_DIR, pic))
-                                udf = load_data("user")
-                                udf.loc[udf['username'] == u['username'], 'profile_pic'] = None
-                                save_data(udf, "user")
-                                st.session_state.user['profile_pic'] = None
-                                st.session_state['uploader_key'] = st.session_state.get('uploader_key', 0) + 1
-                                st.rerun()
+        # --- IF USER IS LOGGED IN ---
+        if 'user' in st.session_state:
+            st.title("Arena Menu")
+            u = st.session_state.user
+            pic = u.get('profile_pic')
+            has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
+            
+            col_img, col_del = st.columns([2, 1])
+            with col_img:
+                if has_custom_pic: st.image(os.path.join(PROFILES_DIR, pic), width=100)
+                else:
+                    icon = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1995/1995531.png"
+                    st.image(icon, width=100)
+            
+            with col_del:
+                if has_custom_pic:
+                    with st.popover("🗑️", help="Remove custom photo"):
+                        st.warning("Delete photo?")
+                        if st.button("Confirm Delete", key="confirm_pic_del", type="primary"):
+                            os.remove(os.path.join(PROFILES_DIR, pic))
+                            udf = load_data("user")
+                            udf.loc[udf['username'] == u['username'], 'profile_pic'] = None
+                            save_data(udf, "user")
+                            st.session_state.user['profile_pic'] = None
+                            st.session_state['uploader_key'] = st.session_state.get('uploader_key', 0) + 1
+                            st.rerun()
 
             with st.expander("⚙️ Edit Profile"):
                 new_name = st.text_input("Display Name", value=u['full_name'])
