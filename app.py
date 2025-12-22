@@ -73,10 +73,8 @@ def login_user(user, pw):
 # --- SIDEBAR NAV & LOGIN ---
 def sidebar_nav():
     with st.sidebar:
-        # LOGO & BRANDING
         st.image("https://cdn-icons-png.flaticon.com/512/2920/2920349.png", width=50)
         
-        # --- IF USER IS LOGGED IN ---
         if 'user' in st.session_state:
             st.title("Arena Menu")
             u = st.session_state.user
@@ -152,7 +150,6 @@ def sidebar_nav():
                     st.session_state.current_page = page_key
                     st.rerun()
         
-        # --- IF USER IS NOT LOGGED IN (SHOW LOGIN IN SIDEBAR) ---
         else:
             st.title("Enter the Arena")
             st.info("Sign in to submit projects and view the battlefield.")
@@ -188,101 +185,59 @@ def sidebar_nav():
                     else:
                         st.error("Wrong Key")
 
-# --- PAGE: LANDING (Home Description) ---
+# --- PAGES ---
 def page_landing():
     st.markdown("""
     # ⚔️ Welcome to the Battle of Insights
     ### *Sharpen your data skills. Prepare for the Final Battle.*
-    
-    **The Arena is Open.** This platform is your dedicated training ground designed to bridge the gap between learning and performing.
-    
-    **Why participate?**
-    * **🚀 Deploy Real Projects:** Apply your Excel and PowerBI skills to real-world scenarios.
-    * **👨‍🏫 Receive Expert Assessment:** Get graded and reviewed by expert instructors.
-    * **📈 Evolve:** Use personalized feedback to improve your analytics game before the main event.
-    * **🏆 Compete:** Climb the leaderboard and earn your rank among warriors.
-    
+    **The Arena is Open.** This platform is your dedicated training ground.
     ---
     **👈 Please use the sidebar to Login or Register.**
     """)
 
-# --- PAGE: DASHBOARD ---
 def page_dashboard():
     st.title("📊 Battlefield Intelligence")
-    
     df = load_data()
     u = st.session_state.user
-    st.caption(f"#### Welcome back, **{u['full_name']}**! Here is the current situation.")
-    st.markdown("#### ")
+    st.caption(f"#### Welcome back, **{u['full_name']}**!")
     
     if df.empty:
         st.info("The battlefield is empty. Be the first to deploy!"); return
 
-    # Global Calculations
     total_projects = len(df)
     total_warriors = df['username'].nunique()
     global_avg = df['instructor_grade'].mean()
     global_avg_display = f"{global_avg:.1f}" if pd.notna(global_avg) else "0.0"
     
-    # Metrics Row
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("🛡️ Active Warriors", total_warriors)
     c2.metric("🚀 Total Deployments", total_projects)
 
-    # Personalized / Role-Based Stats
     if u['role'] == "Student":
         my_projects = df[df['username'] == u['username']]
         my_avg = my_projects['instructor_grade'].mean()
         my_count = len(my_projects)
-        
-        delta_val = None
-        if pd.notna(my_avg) and pd.notna(global_avg):
-            diff = my_avg - global_avg
-            delta_val = f"{diff:.1f} vs Avg"
-
+        delta_val = f"{my_avg - global_avg:.1f} vs Avg" if pd.notna(my_avg) and pd.notna(global_avg) else None
         c3.metric("My Average Score", f"{my_avg:.1f}" if pd.notna(my_avg) else "N/A", delta=delta_val)
         c4.metric("My Deployments", my_count)
-        
-        if my_count == 0:
-            st.warning("⚠️ You haven't deployed any projects yet. Go to 'Submit Project' to start!")
-            
-    else: # Instructor View
+    else:
         graded_count = df['instructor_grade'].count()
         pending_count = total_projects - graded_count
         c3.metric("Class Avg Score", global_avg_display)
-        c4.metric("📝 Pending Reviews", pending_count, delta=-pending_count if pending_count > 0 else 0, delta_color="inverse")
+        c4.metric("📝 Pending Reviews", pending_count)
 
     st.divider()
-
-    # Visual Insights
     col_chart1, col_chart2 = st.columns([1, 1])
-    
     with col_chart1:
         st.subheader("📈 Deployment Velocity")
-        try:
-            df['date'] = pd.to_datetime(df['upload_time']).dt.date
-            daily_counts = df['date'].value_counts().sort_index()
-            st.line_chart(daily_counts, color="#FF4B4B")
-            st.caption("Daily project submission volume.")
-        except:
-            st.error("Timeline data unavailable.")
-
-    # --- REVERTED: CATEGORY BAR CHART ---
+        df['date'] = pd.to_datetime(df['upload_time']).dt.date
+        st.line_chart(df['date'].value_counts().sort_index())
     with col_chart2:
         st.subheader("🏷️ Category Distribution")
-        if 'category' in df.columns:
-            cat_counts = df['category'].value_counts()
-            st.bar_chart(cat_counts)
-            st.caption("Breakdown of project types submitted.")
-        else:
-            st.info("No category data available.")
+        st.bar_chart(df['category'].value_counts())
 
-# --- PAGE: SUBMIT ---
 def page_submit():
     st.title("🚀 Submit Project")
-    st.caption("#### Showcase your skills by uploading your latest analysis for review.")
-    st.markdown("#### ")
-    
     u = st.session_state.user
     with st.form("up_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -306,326 +261,86 @@ def page_submit():
                 }
                 df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                 save_data(df)
-                st.success("Deployed!"); time.sleep(1)
-                st.session_state.current_page = "📂 My Projects"; st.rerun()
+                st.success("Deployed!")
+                time.sleep(1)
+                st.session_state.current_page = "📂 My Projects"
+                st.rerun()
 
-# --- PAGE: MY PROJECTS ---
 def page_my_projects():
     st.title("📂 My Projects")
-    st.caption("#### Manage your portfolio and view instructor feedback.")
-    st.markdown("#### ")
-    
     df = load_data()
     u = st.session_state.user
-    
     my_df = df[df['username'] == u['username']].copy()
-    
     if my_df.empty:
-        st.info("You haven't deployed any projects yet.")
+        st.info("No projects yet.")
         return
-
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        categories = ["All Projects", "Excel", "Power BI", "Others"]
-        selected_cat = st.selectbox("Filter by Category", categories, key="my_cat_filter")
-    with col2:
-        search_query = st.text_input("Search my titles", placeholder="Enter keywords...", key="my_search_filter")
-
-    display_df = my_df.copy()
-    if selected_cat != "All Projects":
-        display_df = display_df[display_df['category'] == selected_cat]
-    if search_query:
-        display_df = display_df[display_df['project_title'].str.contains(search_query, case=False, na=False)]
-
-    for idx, row in display_df.iterrows():
+    for idx, row in my_df.iterrows():
         with st.container(border=True):
-            col_text, col_score, col_menu = st.columns([10, 2, 1])
-            with col_text:
-                st.subheader(row['project_title'])
-                status = "🔒 Private" if row['is_private'] else "🌍 Public"
-                st.caption(f"Status: {status} | Category: {row['category']}")
-            with col_score:
-                score = row['instructor_grade']
-                if pd.notna(score): st.success(f"**Score: {score}/50**")
-                else: st.info("**Score: Pending**")
-            with col_menu:
-                with st.popover("⋮"):
-                    new_privacy = not row['is_private']
-                    p_label = "Make Public 🌍" if row['is_private'] else "Make Private 🔒"
-                    if st.button(p_label, key=f"p_{row['id']}", use_container_width=True):
-                        df.at[idx, 'is_private'] = new_privacy
-                        save_data(df); st.rerun()
-                    if st.button("Edit 📝", key=f"e_{row['id']}", use_container_width=True):
-                        st.session_state[f"editing_{row['id']}"] = True
-                        st.rerun()
-                    if st.button("Delete 🗑️", key=f"d_{row['id']}", use_container_width=True, type="primary"):
-                        if os.path.exists(os.path.join(PROJECTS_DIR, row['filename'])):
-                            os.remove(os.path.join(PROJECTS_DIR, row['filename']))
-                        df = df.drop(idx); save_data(df); st.rerun()
+            st.subheader(row['project_title'])
+            if pd.notna(row['instructor_grade']): st.success(f"Score: {row['instructor_grade']}/50")
+            else: st.info("Score: Pending")
+            with st.expander("Details"):
+                st.write(row['description'])
+                if row['instructor_review']: st.warning(f"Instructor: {row['instructor_review']}")
 
-            if st.session_state.get(f"editing_{row['id']}", False):
-                with st.form(f"f_{row['id']}"):
-                    et = st.text_input("Edit Title", row['project_title'])
-                    ed = st.text_area("Edit Insights", row['description'])
-                    if st.form_submit_button("Save Changes"):
-                        df.at[idx, 'project_title'] = et
-                        df.at[idx, 'description'] = ed
-                        save_data(df)
-                        st.session_state[f"editing_{row['id']}"] = False
-                        st.rerun()
-                    if st.form_submit_button("Cancel"):
-                        st.session_state[f"editing_{row['id']}"] = False
-                        st.rerun()
-
-            t1, t2, t3 = st.tabs(["📄 Details", "💬 Feedback & Comments", "👨‍🏫 Assessment"])
-            with t1:
-                with st.expander("📖 View Project Description"):
-                    st.write(row['description'])
-                path = os.path.join(PROJECTS_DIR, row['filename'])
-                if os.path.exists(path):
-                    st.image(path, use_container_width=True)
-            with t2:
-                raw_comments = row['comments']
-                all_cmts = [] if pd.isna(raw_comments) or raw_comments == "" or raw_comments == "[]" else ast.literal_eval(str(raw_comments))
-                likes_count = len(row['likes']) if isinstance(row['likes'], list) else 0
-                st.write(f"❤️ **{likes_count} Likes**")
-                st.markdown("---")
-                if not all_cmts: st.caption("No comments yet.")
-                else:
-                    for c in all_cmts:
-                        with st.chat_message("user"):
-                            st.write(f"**{c['user']}** • <small>{c.get('time', '')}</small>", unsafe_allow_html=True)
-                            st.write(c['text'])
-            with t3:
-                if row['instructor_review']: st.info(row['instructor_review'])
-                else: st.write("No detailed assessment yet.")
-    
-# --- PAGE: ARENA ---
 def page_arena():
     st.title("⚔️ Battle Arena")
-    st.caption("#### Explore work from your peers and engage in constructive discussion.")
-    st.markdown("#### ")
-    
     df = load_data()
     u = st.session_state.user
-    if df.empty: st.info("The arena is quiet."); return
-
-    col1, col2 = st.columns([1, 2])
-    with col1:
-        selected_cat = st.selectbox("Filter by Category", ["All Projects", "Excel", "Power BI", "Others"])
-    with col2:
-        search_query = st.text_input("Search by Title or Warrior Name", placeholder="Enter keywords...")
-
-    display_df = df.copy()
-    if selected_cat != "All Projects": display_df = display_df[display_df['category'] == selected_cat]
-    if search_query:
-        display_df = display_df[display_df['project_title'].str.contains(search_query, case=False, na=False) | 
-                                display_df['student_name'].str.contains(search_query, case=False, na=False)]
-
-    for idx, row in display_df.iterrows():
+    for idx, row in df.iterrows():
         if row['is_private'] and (u['username'] != row['username'] and u['role'] != "Instructor"): continue
         with st.container(border=True):
-            col_main, col_score = st.columns([4, 1.2])
-            with col_main:
-                prefix = "🔒 " if row['is_private'] else ""
-                st.subheader(f"{prefix}{row['project_title']}")
-                st.caption(f"Warrior: **{row['student_name']}** | Category: **{row['category']}**")
-            with col_score:
-                score = row['instructor_grade']
-                if pd.notna(score): st.success(f"**Score: {score}/50**")
-                else:
-            # Create a display copy to avoid altering the main DF in memory 
+            st.subheader(row['project_title'])
+            st.caption(f"By: {row['student_name']} | {row['category']}")
+            t1, t2, t3 = st.tabs(["📄 Details", "💬 Discussion", "👨‍🏫 Grading"])
+            with t1: st.write(row['description'])
+            with t2: st.write(f"❤️ {len(row['likes'])} Likes")
+            with t3:
+                if u['role'] == "Instructor":
+                    g = st.number_input("Grade", 0, 50, int(row['instructor_grade']) if pd.notna(row['instructor_grade']) else 0, key=f"g_{row['id']}")
+                    r = st.text_area("Review", row['instructor_review'], key=f"r_{row['id']}")
+                    if st.button("Save", key=f"s_{row['id']}"):
+                        df.at[idx, 'instructor_grade'] = g
+                        df.at[idx, 'instructor_review'] = r
+                        save_data(df); st.rerun()
+                else: st.write(f"Grade: {row['instructor_grade'] if pd.notna(row['instructor_grade']) else 'Pending'}")
+
+def page_leaderboard():
+    st.title("🏆 Leaderboard")
+    df = load_data()
+    if df.empty: return
+    ld = df.groupby('student_name')['instructor_grade'].mean().sort_values(ascending=False).reset_index()
+    st.dataframe(ld, use_container_width=True)
+
+def page_instructor_table():
+    if st.session_state.user['role'] == "Instructor":
+        st.title("📋 Master Control Panel")
+        df = load_data()
+        
+        col_dummy, col_export = st.columns([6, 2])
+        with col_export:
+            st.download_button("📥 Export CSV", df.to_csv(index=False).encode('utf-8'), "battle_data.csv", "text/csv")
+
+        display_cols = ["student_name", "category", "project_title", "upload_time", "instructor_grade", "is_private"]
+        
+        if df.empty:
+            st.info("No data available.")
+        else:
             table_df = df[display_cols].copy()
-            # Explicitly replace NaN grades with "Pending" string
+            # Replace empty grades with "Pending"
             table_df['instructor_grade'] = table_df['instructor_grade'].fillna("Pending")
 
-            # 3. INTERACTIVE TABLE
-            # We use .style.map (or .applymap) to inject CSS for the "Pending" text
+            # Apply blue color styling to "Pending" text
             st.dataframe(
                 table_df.style.map(lambda x: "color: #0068c9; font-weight: bold" if x == "Pending" else "", subset=['instructor_grade']),
                 use_container_width=True,
                 column_config={
                     "student_name": "Warrior Name",
                     "project_title": "Project Title",
-                    "category": st.column_config.TextColumn("Category", width="medium"),
+                    "category": st.column_config.TextColumn("Category"),
                     "upload_time": st.column_config.DatetimeColumn("Deployed At", format="D MMM, HH:mm"),
-                    # Changed from ProgressColumn to generic Column to allow text "Pending"
-                    "instructor_grade": st.column_config.Column(
-                        "Grade", 
-                        help="Score out of 50 or Pending status"
-                    ),
-                    "is_private": st.column_config.CheckboxColumn("Private?", default=False)
-                },
-                hide_index=True
-            )
-            
-            t1, t2, t3 = st.tabs(["📄 Details", "💬 Feedback & Discussion", "👨‍🏫 Assessment"])
-            with t1:
-                with st.expander("📖 View Project Description"): st.write(row['description'])
-                path = os.path.join(PROJECTS_DIR, row['filename'])
-                if os.path.exists(path):
-                    ext = row['filename'].lower().split('.')[-1]
-                    if ext in ['png', 'jpg', 'jpeg']: st.image(path, use_container_width=True)
-                    st.download_button("📥 Download", open(path, "rb"), file_name=row['filename'], key=f"dl_{row['id']}")
-            
-            with t2:
-                likes = row['likes'] if isinstance(row['likes'], list) else []
-                liked = u['username'] in likes
-                if st.button(f"{'❤️' if liked else '🤍'} {len(likes)} Likes", key=f"l_{row['id']}"):
-                    if liked: likes.remove(u['username'])
-                    else: likes.append(u['username'])
-                    df.at[idx, 'likes'] = likes 
-                    save_data(df); st.rerun()
-
-                st.markdown("---")
-                raw_comments = row['comments']
-                all_cmts = [] if pd.isna(raw_comments) or raw_comments == "" or raw_comments == "[]" else ast.literal_eval(str(raw_comments))
-
-                with st.form(key=f"cmt_form_{row['id']}", clear_on_submit=True):
-                    new_cmt_text = st.text_input("Share your thoughts...")
-                    if st.form_submit_button("Post Comment") and new_cmt_text:
-                        all_cmts.append({"user": u['full_name'], "text": new_cmt_text, "time": datetime.now().strftime("%b %d, %H:%M")})
-                        df.at[idx, 'comments'] = str(all_cmts)
-                        save_data(df); st.rerun()
-
-                for c in all_cmts:
-                    with st.chat_message("user"):
-                        st.write(f"**{c['user']}** • <small>{c['time']}</small>", unsafe_allow_html=True)
-                        st.write(c['text'])
-
-            with t3:
-                if u['role'] == "Instructor":
-                    current_grade = int(row['instructor_grade']) if pd.notna(row['instructor_grade']) else 0
-                    ng = st.number_input("Mark (0-50)", 0, 50, current_grade, key=f"g_{row['id']}")
-                    nr = st.text_area("Instructor Feedback", str(row['instructor_review']) if pd.notna(row['instructor_review']) else "", key=f"r_{row['id']}")
-                    if st.button("Submit Grade", key=f"s_{row['id']}"):
-                        df.at[idx, 'instructor_grade'] = ng
-                        df.at[idx, 'instructor_review'] = nr
-                        save_data(df); st.toast("Grade Saved!"); st.rerun()
-                else:
-                    st.info(row['instructor_review'] if row['instructor_review'] else "No instructor feedback yet.")
-
-# --- PAGE: LEADERBOARD ---
-def page_leaderboard():
-    st.title("🏆 Warrior Leaderboard")
-    st.caption("#### Recognizing consistency and excellence in data analysis.")
-    st.markdown("#### ")
-    
-    df = load_data()
-    
-    if df.empty:
-        st.info("No projects submitted yet.")
-        return
-
-    # Filter graded projects
-    graded_df = df[df['instructor_grade'].notna()].copy()
-    
-    if graded_df.empty:
-        st.info("Waiting for the instructor to finalize grades...")
-        return
-
-    # Aggregate by student
-    student_leaderboard = graded_df.groupby('student_name').agg({
-        'project_title': 'count',
-        'instructor_grade': ['mean', 'max'],
-        'likes': lambda x: sum(len(l) if isinstance(l, list) else 0 for l in x)
-    }).reset_index()
-
-    student_leaderboard.columns = ['Warrior Name', 'Projects', 'Avg Score', 'Best Score', 'Total Likes']
-    
-    # Rounding and Type conversion
-    student_leaderboard['Avg Score'] = student_leaderboard['Avg Score'].round(1)
-    student_leaderboard['Best Score'] = student_leaderboard['Best Score'].astype(float)
-
-    # Sorting Logic (Volume -> Quality)
-    student_leaderboard = student_leaderboard.sort_values(
-        by=['Projects', 'Avg Score'], 
-        ascending=[False, False]
-    )
-
-    # Dense Ranking
-    student_leaderboard['Rank'] = student_leaderboard[['Projects', 'Avg Score']].apply(tuple, axis=1).rank(
-        method='dense', 
-        ascending=False
-    ).astype(int)
-
-    student_leaderboard = student_leaderboard.sort_values('Rank')
-
-    if not student_leaderboard.empty:
-        top_warrior = student_leaderboard.iloc[0]
-        st.success(f"🎊 **Current Leader:** {top_warrior['Warrior Name']} | **{top_warrior['Projects']}** Projects | Avg: **{top_warrior['Avg Score']}**")
-    
-    st.divider()
-
-    st.dataframe(
-        student_leaderboard[['Rank', 'Warrior Name', 'Projects', 'Avg Score', 'Best Score', 'Total Likes']],
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Rank": st.column_config.NumberColumn("Rank", format="%d 🏅"),
-            "Projects": st.column_config.NumberColumn("Deployments", format="%d 🚀"),
-            "Avg Score": st.column_config.ProgressColumn(
-                "Avg Marks",
-                help="Average marks across all graded projects.",
-                format="%.1f",
-                min_value=0,
-                max_value=50,
-            ),
-            "Best Score": st.column_config.NumberColumn("Best Score", format="%.1f"),
-            "Total Likes": st.column_config.NumberColumn("Total Likes", format="%d ❤️")
-        }
-    )
-
-# --- PAGE: INSTRUCTOR CONTROL ---
-def page_instructor_table():
-    if st.session_state.user['role'] == "Instructor":
-        st.title("📋 Master Control Panel")
-        st.caption("#### Overview of all deployed projects and grading status.")
-        st.markdown("#### ")
-        
-        df = load_data()
-        
-        # 1. EXPORT BUTTON (Right Aligned, Grayish)
-        col_dummy, col_export = st.columns([6, 2])
-        with col_export:
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Export Full Database (CSV)",
-                data=csv,
-                file_name=f"battle_of_insights_full_{int(time.time())}.csv",
-                mime="text/csv",
-                type="secondary" 
-            )
-
-        # 2. ANALYST SELECTION
-        display_cols = [
-            "student_name", "category", "project_title", 
-            "upload_time", "instructor_grade", "is_private"
-        ]
-        
-        if df.empty:
-            st.info("No data available.")
-        else:
-            # Create a display copy to avoid altering the main DF in memory 
-            table_df = df[display_cols].copy()
-            # Explicitly replace NaN grades with "Pending" string
-            table_df['instructor_grade'] = table_df['instructor_grade'].fillna("Pending")
-
-            # 3. INTERACTIVE TABLE
-            st.dataframe(
-                table_df,
-                use_container_width=True,
-                column_config={
-                    "student_name": "Warrior Name",
-                    "project_title": "Project Title",
-                    "category": st.column_config.TextColumn("Category", width="medium"),
-                    "upload_time": st.column_config.DatetimeColumn("Deployed At", format="D MMM, HH:mm"),
-                    # Changed from ProgressColumn to generic Column to allow text "Pending"
-                    "instructor_grade": st.column_config.Column(
-                        "Grade", 
-                        help="Score out of 50 or Pending status"
-                    ),
-                    "is_private": st.column_config.CheckboxColumn("Private?", default=False)
+                    "instructor_grade": st.column_config.Column("Grade", help="Blue 'Pending' indicates project needs marking."),
+                    "is_private": st.column_config.CheckboxColumn("Private?")
                 },
                 hide_index=True
             )
@@ -637,8 +352,6 @@ sidebar_nav()
 if 'user' in st.session_state:
     pg = st.session_state.current_page
     u_role = st.session_state.user['role']
-
-    # Security: Ensure Instructor cannot access student pages
     if pg == "📊 Dashboard": page_dashboard()
     elif pg == "🚀 Submit Project" and u_role != "Instructor": page_submit()
     elif pg == "📂 My Projects" and u_role != "Instructor": page_my_projects()
@@ -649,5 +362,4 @@ if 'user' in st.session_state:
         st.session_state.current_page = "📊 Dashboard"
         st.rerun()
 else:
-    # If not logged in, show the Main Landing Page
     page_landing()
