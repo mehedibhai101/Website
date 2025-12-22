@@ -18,12 +18,12 @@ st.set_page_config(
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
-            header {visibility: hidden;}
             footer {visibility: hidden;}
             .stAppDeployButton {display: none;}
             /* This hides the "anchor" link icons next to titles */
             .viewerBadge_container__1QSob {display: none !important;}
             .st-emotion-cache-zq59db {display: none !important;}
+            #stDecoration {display:none !important;}
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
