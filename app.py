@@ -210,7 +210,7 @@ def page_dashboard():
     
     df = load_data()
     u = st.session_state.user
-    st.markdown(f"#### Welcome back, **{u['full_name']}**! Here is the current situation.")
+    st.caption(f"#### Welcome back, **{u['full_name']}**! Here is the current situation.")
     st.markdown("#### ")
     
     if df.empty:
@@ -403,7 +403,7 @@ def page_my_projects():
 # --- PAGE: ARENA ---
 def page_arena():
     st.title("⚔️ Battle Arena")
-    st.markdown("#### Explore work from your peers and engage in constructive discussion.")
+    st.caption("#### Explore work from your peers and engage in constructive discussion.")
     st.markdown("#### ")
     
     df = load_data()
