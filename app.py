@@ -502,12 +502,13 @@ def page_leaderboard():
 
     # Aggregate by student
     student_leaderboard = graded_df.groupby('username').agg({
+        'student_name': 'first',
         'project_title': 'count',
         'instructor_grade': ['mean', 'max'],
         'likes': lambda x: sum(len(l) if isinstance(l, list) else 0 for l in x)
     }).reset_index()
 
-    student_leaderboard.columns = ['Warrior Name', 'Projects', 'Avg Score', 'Best Score', 'Total Likes']
+    student_leaderboard.columns = ['Username', 'Warrior Name', 'Projects', 'Avg Score', 'Best Score', 'Total Likes']
     
     # Rounding and Type conversion
     student_leaderboard['Avg Score'] = student_leaderboard['Avg Score'].round(1)
