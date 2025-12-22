@@ -17,23 +17,17 @@ st.set_page_config(
 # --- CLEAN UI: HIDE BRANDING BUT KEEP SIDEBAR TOGGLE ---
 hide_st_style = """
             <style>
-            /* Hide the Main Menu and Footer */
+            /* Hide the Streamlit Multi-page nav and branding */
             #MainMenu {visibility: hidden;}
             footer {visibility: hidden;}
-            
-            /* Hide the Deploy button and the cloud toolbar (GitHub, Edit, Star) */
             .stAppDeployButton {display: none;}
-            [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
-            
-            /* Hide the 'Manage app' badge at the bottom right */
-            [data-testid="stStatusWidget"] {display: none !important;}
             .viewerBadge_container__1QSob {display: none !important;}
             
             /* Hide the header background and decoration line */
             #stDecoration {display:none !important;}
             [data-testid="stHeader"] {
                 background: rgba(0,0,0,0);
-                height: 0px;
+                color: rgba(0,0,0,0);
             }
             
             /* ENSURE THE SIDEBAR TOGGLE REMAINS VISIBLE AND CLICKABLE */
