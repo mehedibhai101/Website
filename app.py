@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CLEAN UI: HIDE ALL CLOUD BRANDING & TOOLBARS ---
+# --- CLEAN UI: HIDE BRANDING BUT KEEP SIDEBAR TOGGLE ---
 hide_st_style = """
             <style>
             /* Hide the Main Menu and Footer */
@@ -36,11 +36,11 @@ hide_st_style = """
                 height: 0px;
             }
             
-            /* KEEP SIDEBAR TOGGLE VISIBLE */
+            /* ENSURE THE SIDEBAR TOGGLE REMAINS VISIBLE AND CLICKABLE */
             [data-testid="stSidebarCollapseButton"] {
                 visibility: visible !important;
-                color: #0068c9 !important;
-                background-color: rgba(255, 255, 255, 0.8) !important;
+                color: #0068c9 !important; /* Makes the icon blue so you can see it */
+                background-color: rgba(255, 255, 255, 0.5) !important;
                 border-radius: 5px;
             }
             </style>
