@@ -645,11 +645,18 @@ sidebar_nav()
 
 if 'user' in st.session_state:
     pg = st.session_state.current_page
-    if pg == "📊 Dashboard": from page_dashboard_code import page_dashboard; page_dashboard() # Assuming dashboard code exists
-    elif pg == "🚀 Submit Project": page_submit()
-    elif pg == "📂 My Projects": page_my_projects() # Keep your existing logic
+    u_role = st.session_state.user['role']
+
+    # Security: Ensure Instructor cannot access student pages
+    if pg == "📊 Dashboard": page_dashboard()
+    elif pg == "🚀 Submit Project" and u_role != "Instructor": page_submit()
+    elif pg == "📂 My Projects" and u_role != "Instructor": page_my_projects()
     elif pg == "⚔️ Battle Arena": page_arena()
-    elif pg == "🏆 Leaderboard": page_leaderboard() # Keep your existing logic
-    elif pg == "📋 Instructor Table": page_instructor_table() # Keep your existing logic
+    elif pg == "🏆 Leaderboard": page_leaderboard()
+    elif pg == "📋 Instructor Table" and u_role == "Instructor": page_instructor_table()
+    else:
+        st.session_state.current_page = "📊 Dashboard"
+        st.rerun()
 else:
+    # If not logged in, show the Main Landing Page
     page_landing()
