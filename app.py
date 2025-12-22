@@ -18,6 +18,7 @@ st.set_page_config(
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
             footer {visibility: hidden;}
             .stAppDeployButton {display: none;}
             /* This hides the "anchor" link icons next to titles */
