@@ -14,38 +14,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- CLEAN UI: HIDE SPECIFIC CLOUD ICONS BUT KEEP HAMBURGER & SIDEBAR ---
+# --- HIDE ALL UNNECESSARY UI ELEMENTS ---
 hide_st_style = """
             <style>
-            /* 1. Hide the Footer and Manage App badge */
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
             footer {visibility: hidden;}
-            [data-testid="stStatusWidget"] {display: none !important;}
+            .stAppDeployButton {display: none;}
+            /* This hides the "anchor" link icons next to titles */
             .viewerBadge_container__1QSob {display: none !important;}
-            
-            /* 2. Hide specific Toolbar icons (GitHub, Edit, Star) without hiding the menu */
-            /* This targets the links and buttons inside the toolbar except the menu */
-            [data-testid="stToolbar"] a, 
-            [data-testid="stToolbar"] button:not(:first-child) {
-                display: none !important;
-            }
-
-            /* 3. Ensure the Hamburger/Main Menu is still visible */
-            #MainMenu {visibility: visible !important;}
-            
-            /* 4. Hide the Deploy button and header decoration */
-            .stAppDeployButton {display: none !important;}
-            #stDecoration {display:none !important;}
-            [data-testid="stHeader"] {
-                background: rgba(0,0,0,0);
-            }
-            
-            /* 5. Keep Sidebar Toggle visible and styled for clarity */
-            [data-testid="stSidebarCollapseButton"] {
-                visibility: visible !important;
-                color: #0068c9 !important;
-                background-color: rgba(255, 255, 255, 0.8) !important;
-                border-radius: 5px;
-            }
+            .st-emotion-cache-zq59db {display: none !important;}
             </style>
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
