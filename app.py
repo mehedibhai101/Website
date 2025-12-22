@@ -14,6 +14,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- HIDE STREAMLIT ELEMENTS ---
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            footer {visibility: hidden;}
+            .stAppDeployButton {display: none;}
+            </style>
+            """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # Constants
 PROJECTS_DIR = 'uploaded_projects'
 PROFILES_DIR = 'user_profiles'
