@@ -185,6 +185,8 @@ def sidebar_nav():
                         st.session_state.user = {"username": "admin", "full_name": "Lead Instructor", "role": "Instructor", "profile_pic": None}
                         st.session_state.current_page = "📊 Dashboard"
                         st.rerun()
+                    else:
+                        st.error("Wrong Key")
 
 # --- PAGE: LANDING (Home Description) ---
 def page_landing():
@@ -580,22 +582,24 @@ def page_instructor_table():
         if df.empty:
             st.info("No data available.")
         else:
+            # Create a display copy to avoid altering the main DF in memory 
+            table_df = df[display_cols].copy()
+            # Explicitly replace NaN grades with "Pending" string
+            table_df['instructor_grade'] = table_df['instructor_grade'].fillna("Pending")
+
             # 3. INTERACTIVE TABLE
             st.dataframe(
-                df[display_cols],
+                table_df,
                 use_container_width=True,
                 column_config={
                     "student_name": "Warrior Name",
                     "project_title": "Project Title",
-                    # FIXED: Changed from SelectboxColumn (which requires options) to simple text display
                     "category": st.column_config.TextColumn("Category", width="medium"),
                     "upload_time": st.column_config.DatetimeColumn("Deployed At", format="D MMM, HH:mm"),
-                    "instructor_grade": st.column_config.ProgressColumn(
+                    # Changed from ProgressColumn to generic Column to allow text "Pending"
+                    "instructor_grade": st.column_config.Column(
                         "Grade", 
-                        format="%d/50", 
-                        min_value=0, 
-                        max_value=50,
-                        help="Visual indicator of student performance"
+                        help="Score out of 50 or Pending status"
                     ),
                     "is_private": st.column_config.CheckboxColumn("Private?", default=False)
                 },
