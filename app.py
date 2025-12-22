@@ -89,7 +89,6 @@ def login_user(user, pw):
 # --- SIDEBAR NAV & NOTIFICATIONS ---
 def sidebar_nav():
     with st.sidebar:
-        st.image("https://cdn-icons-png.flaticon.com/512/2920/2920349.png", width=50)
             
         if 'user' in st.session_state:
             u = st.session_state.user
@@ -116,9 +115,7 @@ def sidebar_nav():
                         ndf.loc[ndf['recipient'] == u['username'], 'is_read'] = True
                         save_data(ndf, "notif")
                         st.rerun()
-            
-            st.markdown("---")
-            st.title("Arena Menu")
+        
         # --- IF USER IS LOGGED IN ---
         if 'user' in st.session_state:
             st.title("Arena Menu")
