@@ -433,7 +433,31 @@ def page_arena():
             with col_score:
                 score = row['instructor_grade']
                 if pd.notna(score): st.success(f"**Score: {score}/50**")
-                else: st.info("**Score: Pending**")
+                else:
+            # Create a display copy to avoid altering the main DF in memory 
+            table_df = df[display_cols].copy()
+            # Explicitly replace NaN grades with "Pending" string
+            table_df['instructor_grade'] = table_df['instructor_grade'].fillna("Pending")
+
+            # 3. INTERACTIVE TABLE
+            # We use .style.map (or .applymap) to inject CSS for the "Pending" text
+            st.dataframe(
+                table_df.style.map(lambda x: "color: #0068c9; font-weight: bold" if x == "Pending" else "", subset=['instructor_grade']),
+                use_container_width=True,
+                column_config={
+                    "student_name": "Warrior Name",
+                    "project_title": "Project Title",
+                    "category": st.column_config.TextColumn("Category", width="medium"),
+                    "upload_time": st.column_config.DatetimeColumn("Deployed At", format="D MMM, HH:mm"),
+                    # Changed from ProgressColumn to generic Column to allow text "Pending"
+                    "instructor_grade": st.column_config.Column(
+                        "Grade", 
+                        help="Score out of 50 or Pending status"
+                    ),
+                    "is_private": st.column_config.CheckboxColumn("Private?", default=False)
+                },
+                hide_index=True
+            )
             
             t1, t2, t3 = st.tabs(["📄 Details", "💬 Feedback & Discussion", "👨‍🏫 Assessment"])
             with t1:
