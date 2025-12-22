@@ -87,22 +87,19 @@ def sidebar_nav():
             with col_img:
                 if has_custom_pic: st.image(os.path.join(PROFILES_DIR, pic), width=100)
                 else:
-                    icon = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1995/1995531.png"
+                    icon = "https://cdn-icons-png.flaticon.com/512/1995/1995531.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1077/1077114.png"
                     st.image(icon, width=100)
             
             with col_del:
                 if has_custom_pic:
-                    # Replaced direct button with a popover confirmation
-                    with st.popover("🗑️", help="Remove custom photo"):
-                        st.warning("Delete photo?")
-                        if st.button("Confirm Delete", key="confirm_pic_del", type="primary"):
-                            os.remove(os.path.join(PROFILES_DIR, pic))
-                            udf = load_data("user")
-                            udf.loc[udf['username'] == u['username'], 'profile_pic'] = None
-                            save_data(udf, "user")
-                            st.session_state.user['profile_pic'] = None
-                            st.session_state['uploader_key'] = st.session_state.get('uploader_key', 0) + 1
-                            st.rerun()
+                    if st.button("🗑️", help="Remove custom photo"):
+                        os.remove(os.path.join(PROFILES_DIR, pic))
+                        udf = load_data("user")
+                        udf.loc[udf['username'] == u['username'], 'profile_pic'] = None
+                        save_data(udf, "user")
+                        st.session_state.user['profile_pic'] = None
+                        st.session_state['uploader_key'] = st.session_state.get('uploader_key', 0) + 1
+                        st.rerun()
 
             with st.expander("⚙️ Edit Profile"):
                 new_name = st.text_input("Display Name", value=u['full_name'])
@@ -174,15 +171,15 @@ def sidebar_nav():
             
             with t_reg:
                 r_name = st.text_input("Full Name")
-                r_u = st.text_input("Username")
-                r_p = st.text_input("Password", type="password")
+                r_u = st.text_input("New Username")
+                r_p = st.text_input("New Password", type="password")
                 if st.button("Create Account", use_container_width=True):
                     success, msg = register_user(r_u, r_p, r_name)
                     if success: st.success(msg)
                     else: st.error(msg)
             
             with t_inst:
-                admin_key = st.text_input("Put Master Key", type="password")
+                admin_key = st.text_input("Access Key", type="password")
                 if st.button("Unlock Instructor Mode", use_container_width=True):
                     if admin_key == ADMIN_PASS:
                         st.session_state.user = {"username": "admin", "full_name": "Lead Instructor", "role": "Instructor", "profile_pic": None}
@@ -213,7 +210,7 @@ def page_dashboard():
     
     df = load_data()
     u = st.session_state.user
-    st.caption(f"#### Welcome back, **{u['full_name']}**! Here is the current situation.")
+    st.markdown(f"#### Welcome back, **{u['full_name']}**! Here is the current situation.")
     st.markdown("#### ")
     
     if df.empty:
@@ -332,6 +329,8 @@ def page_my_projects():
     with col2:
         search_query = st.text_input("Search my titles", placeholder="Enter keywords...", key="my_search_filter")
 
+    st.divider()
+
     display_df = my_df.copy()
     if selected_cat != "All Projects":
         display_df = display_df[display_df['category'] == selected_cat]
@@ -359,23 +358,10 @@ def page_my_projects():
                     if st.button("Edit 📝", key=f"e_{row['id']}", use_container_width=True):
                         st.session_state[f"editing_{row['id']}"] = True
                         st.rerun()
-                    if st.button("Delete 🗑️", key=f"d_init_{row['id']}", use_container_width=True, type="primary"):
-                        st.session_state[f"confirm_delete_{row['id']}"] = True
-                    if st.session_state.get(f"confirm_delete_{row['id']}", False):
-                        st.error("⚠️ Are you sure?")
-                        col_confirm, col_cancel = st.columns(2)
-                        with col_confirm:
-                            if st.button("Confirm", key=f"conf_del_{row['id']}", type="primary", use_container_width=True):
-                                if os.path.exists(os.path.join(PROJECTS_DIR, row['filename'])):
-                                    os.remove(os.path.join(PROJECTS_DIR, row['filename']))
-                                df = df.drop(idx)
-                                save_data(df)
-                                del st.session_state[f"confirm_delete_{row['id']}"]
-                                st.rerun()
-                        with col_cancel:
-                            if st.button("Cancel", key=f"canc_del_{row['id']}", use_container_width=True):
-                                del st.session_state[f"confirm_delete_{row['id']}"]
-                                st.rerun()
+                    if st.button("Delete 🗑️", key=f"d_{row['id']}", use_container_width=True, type="primary"):
+                        if os.path.exists(os.path.join(PROJECTS_DIR, row['filename'])):
+                            os.remove(os.path.join(PROJECTS_DIR, row['filename']))
+                        df = df.drop(idx); save_data(df); st.rerun()
 
             if st.session_state.get(f"editing_{row['id']}", False):
                 with st.form(f"f_{row['id']}"):
@@ -417,7 +403,7 @@ def page_my_projects():
 # --- PAGE: ARENA ---
 def page_arena():
     st.title("⚔️ Battle Arena")
-    st.caption("#### Explore work from your peers and engage in constructive discussion.")
+    st.markdown("#### Explore work from your peers and engage in constructive discussion.")
     st.markdown("#### ")
     
     df = load_data()
