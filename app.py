@@ -19,12 +19,14 @@ PROJECTS_DIR = 'uploaded_projects'
 PROFILES_DIR = 'user_profiles'
 DATA_FILE = 'project_db_v2.csv'
 USER_FILE = 'user_db_v2.csv'
-NOTIF_FILE = 'notifications_db.csv' # NEW: Notification storage
 ADMIN_PASS = "@Dm1n-OnE_22-Tree-E1eV@#" 
 
 for folder in [PROJECTS_DIR, PROFILES_DIR]:
     if not os.path.exists(folder):
         os.makedirs(folder)
+
+if 'current_page' not in st.session_state:
+    st.session_state.current_page = "📊 Dashboard"
 
 # --- DATABASE ENGINE ---
 def init_db():
@@ -38,13 +40,9 @@ def init_db():
     if not os.path.exists(USER_FILE):
         df = pd.DataFrame(columns=["username", "password", "full_name", "role", "profile_pic"])
         df.to_csv(USER_FILE, index=False)
-    if not os.path.exists(NOTIF_FILE):
-        df = pd.DataFrame(columns=["timestamp", "recipient", "sender", "message", "is_read"])
-        df.to_csv(NOTIF_FILE, index=False)
 
 def load_data(file="project"):
-    paths = {"project": DATA_FILE, "user": USER_FILE, "notif": NOTIF_FILE}
-    path = paths.get(file, DATA_FILE)
+    path = DATA_FILE if file == "project" else USER_FILE
     try:
         df = pd.read_csv(path)
         if file == "project":
@@ -53,22 +51,8 @@ def load_data(file="project"):
     except: return pd.DataFrame()
 
 def save_data(df, file="project"):
-    paths = {"project": DATA_FILE, "user": USER_FILE, "notif": NOTIF_FILE}
-    path = paths.get(file, DATA_FILE)
+    path = DATA_FILE if file == "project" else USER_FILE
     df.to_csv(path, index=False)
-
-# NEW: Notification Helper
-def add_notification(recipient, sender, message):
-    ndf = load_data("notif")
-    new_notif = {
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "recipient": recipient,
-        "sender": sender,
-        "message": message,
-        "is_read": False
-    }
-    ndf = pd.concat([ndf, pd.DataFrame([new_notif])], ignore_index=True)
-    save_data(ndf, "notif")
 
 # --- AUTHENTICATION ---
 def hash_pass(password): return hashlib.sha256(password.encode()).hexdigest()
@@ -86,36 +70,12 @@ def login_user(user, pw):
     match = df[(df['username'] == user) & (df['password'] == hash_pass(pw))]
     return match.iloc[0].to_dict() if not match.empty else None
 
-# --- SIDEBAR NAV & NOTIFICATIONS ---
+# --- SIDEBAR NAV & LOGIN ---
 def sidebar_nav():
     with st.sidebar:
+        # LOGO & BRANDING
+        st.image("https://cdn-icons-png.flaticon.com/512/2920/2920349.png", width=50)
             
-        if 'user' in st.session_state:
-            u = st.session_state.user
-            
-            # --- NOTIFICATION CENTER ---
-            ndf = load_data("notif")
-            my_notifs = ndf[ndf['recipient'] == u['username']].sort_index(ascending=False)
-            unread_count = len(my_notifs[my_notifs['is_read'] == False])
-            
-            with st.expander(f"🔔 Notifications ({unread_count})", expanded=unread_count > 0):
-                if my_notifs.empty:
-                    st.caption("No notifications yet.")
-                else:
-                    for i, n in my_notifs.head(5).iterrows():
-                        bg = "#f0f2f6" if not n['is_read'] else "transparent"
-                        st.markdown(f"""
-                        <div style="background-color:{bg}; padding:5px; border-radius:5px; margin-bottom:5px; border:1px solid #ddd">
-                        <small style="color:gray;">{n['timestamp']}</small><br>
-                        <b style="font-size:0.85em;">{n['sender']}</b>: <span style="font-size:0.85em;">{n['message']}</span>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    
-                    if st.button("Mark all as read", use_container_width=True):
-                        ndf.loc[ndf['recipient'] == u['username'], 'is_read'] = True
-                        save_data(ndf, "notif")
-                        st.rerun()
-        
         # --- IF USER IS LOGGED IN ---
         if 'user' in st.session_state:
             st.title("Arena Menu")
@@ -322,10 +282,14 @@ def page_dashboard():
 # --- PAGE: SUBMIT ---
 def page_submit():
     st.title("🚀 Submit Project")
+    st.caption("#### Showcase your skills by uploading your latest analysis for review.")
+    st.markdown("#### ")
+    
     u = st.session_state.user
     with st.form("up_form", clear_on_submit=True):
-        cat = st.selectbox("Category", ["Excel", "Power BI", "Others"])
-        title = st.text_input("Project Title *")
+        col1, col2 = st.columns(2)
+        cat = col1.selectbox("Category", ["Excel", "Power BI", "Others"])
+        title = col2.text_input("Project Title *")
         desc = st.text_area("Key Insights / Summary")
         file = st.file_uploader("Upload File", type=['csv','xlsx','pdf','png','jpg','jpeg'])
         private = st.checkbox("Instructor Only (Private Submission)")
@@ -340,14 +304,10 @@ def page_submit():
                     "category": cat, "project_title": title, "description": desc,
                     "filename": fname, "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
                     "is_private": private, "instructor_grade": None, "instructor_review": "",
-                    "likes": [], "comments": "[]"
+                    "likes": []
                 }
                 df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                 save_data(df)
-                
-                # NOTIFY INSTRUCTOR
-                add_notification("admin", u['full_name'], f"Uploaded a new project: {title}")
-                
                 st.success("Deployed!"); time.sleep(1)
                 st.session_state.current_page = "📂 My Projects"; st.rerun()
 
@@ -454,45 +414,75 @@ def page_my_projects():
             with t3:
                 if row['instructor_review']: st.info(row['instructor_review'])
                 else: st.write("No detailed assessment yet.")
-
+    
 # --- PAGE: ARENA ---
 def page_arena():
     st.title("⚔️ Battle Arena")
+    st.caption("#### Explore work from your peers and engage in constructive discussion.")
+    st.markdown("#### ")
+    
     df = load_data()
     u = st.session_state.user
     if df.empty: st.info("The arena is quiet."); return
 
-    for idx, row in df.iterrows():
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        selected_cat = st.selectbox("Filter by Category", ["All Projects", "Excel", "Power BI", "Others"])
+    with col2:
+        search_query = st.text_input("Search by Title or Warrior Name", placeholder="Enter keywords...")
+
+    display_df = df.copy()
+    if selected_cat != "All Projects": display_df = display_df[display_df['category'] == selected_cat]
+    if search_query:
+        display_df = display_df[display_df['project_title'].str.contains(search_query, case=False, na=False) | 
+                                display_df['student_name'].str.contains(search_query, case=False, na=False)]
+
+    for idx, row in display_df.iterrows():
         if row['is_private'] and (u['username'] != row['username'] and u['role'] != "Instructor"): continue
         with st.container(border=True):
-            st.subheader(row['project_title'])
+            col_main, col_score = st.columns([4, 1.2])
+            with col_main:
+                prefix = "🔒 " if row['is_private'] else ""
+                st.subheader(f"{prefix}{row['project_title']}")
+                st.caption(f"Warrior: **{row['student_name']}** | Category: **{row['category']}**")
+            with col_score:
+                score = row['instructor_grade']
+                if pd.notna(score): st.success(f"**Score: {score}/50**")
+                else: st.info("**Score: Pending**")
+            
             t1, t2, t3 = st.tabs(["📄 Details", "💬 Feedback & Discussion", "👨‍🏫 Assessment"])
+            with t1:
+                with st.expander("📖 View Project Description"): st.write(row['description'])
+                path = os.path.join(PROJECTS_DIR, row['filename'])
+                if os.path.exists(path):
+                    ext = row['filename'].lower().split('.')[-1]
+                    if ext in ['png', 'jpg', 'jpeg']: st.image(path, use_container_width=True)
+                    st.download_button("📥 Download", open(path, "rb"), file_name=row['filename'], key=f"dl_{row['id']}")
             
             with t2:
-                # LIKES LOGIC
                 likes = row['likes'] if isinstance(row['likes'], list) else []
                 liked = u['username'] in likes
                 if st.button(f"{'❤️' if liked else '🤍'} {len(likes)} Likes", key=f"l_{row['id']}"):
                     if liked: likes.remove(u['username'])
-                    else: 
-                        likes.append(u['username'])
-                        if u['username'] != row['username']:
-                            add_notification(row['username'], u['full_name'], f"liked your project: {row['project_title']}")
+                    else: likes.append(u['username'])
                     df.at[idx, 'likes'] = likes 
                     save_data(df); st.rerun()
 
-                # COMMENTS LOGIC
+                st.markdown("---")
                 raw_comments = row['comments']
                 all_cmts = [] if pd.isna(raw_comments) or raw_comments == "" or raw_comments == "[]" else ast.literal_eval(str(raw_comments))
+
                 with st.form(key=f"cmt_form_{row['id']}", clear_on_submit=True):
                     new_cmt_text = st.text_input("Share your thoughts...")
                     if st.form_submit_button("Post Comment") and new_cmt_text:
                         all_cmts.append({"user": u['full_name'], "text": new_cmt_text, "time": datetime.now().strftime("%b %d, %H:%M")})
                         df.at[idx, 'comments'] = str(all_cmts)
-                        save_data(df)
-                        if u['username'] != row['username']:
-                            add_notification(row['username'], u['full_name'], f"commented on {row['project_title']}")
-                        st.rerun()
+                        save_data(df); st.rerun()
+
+                for c in all_cmts:
+                    with st.chat_message("user"):
+                        st.write(f"**{c['user']}** • <small>{c['time']}</small>", unsafe_allow_html=True)
+                        st.write(c['text'])
 
             with t3:
                 if u['role'] == "Instructor":
@@ -502,10 +492,7 @@ def page_arena():
                     if st.button("Submit Grade", key=f"s_{row['id']}"):
                         df.at[idx, 'instructor_grade'] = ng
                         df.at[idx, 'instructor_review'] = nr
-                        save_data(df)
-                        # NOTIFY STUDENT
-                        add_notification(row['username'], "Instructor", f"assessed your project: {row['project_title']}")
-                        st.toast("Grade Saved!"); st.rerun()
+                        save_data(df); st.toast("Grade Saved!"); st.rerun()
                 else:
                     st.info(row['instructor_review'] if row['instructor_review'] else "No instructor feedback yet.")
 
@@ -637,7 +624,6 @@ def page_instructor_table():
 
 # --- ROUTER ---
 init_db()
-if 'current_page' not in st.session_state: st.session_state.current_page = "📊 Dashboard"
 sidebar_nav()
 
 if 'user' in st.session_state:
