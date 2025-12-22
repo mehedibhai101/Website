@@ -484,45 +484,70 @@ def page_arena():
 # --- PAGE: LEADERBOARD ---
 def page_leaderboard():
     st.title("🏆 Warrior Leaderboard")
-    st.caption("#### Recognizing excellence across the battlefield.")
+    st.caption("#### Recognizing consistency and excellence in data analysis.")
     st.markdown("#### ")
+    
     df = load_data()
+    
     if df.empty:
         st.info("No projects submitted yet.")
         return
 
-    # Filter to only include projects with grades for score calculation
+    # Filter graded projects
     graded_df = df[df['instructor_grade'].notna()].copy()
     
     if graded_df.empty:
-        st.info("The leaderboard will populate once grades are deployed.")
+        st.info("Waiting for the instructor to finalize grades...")
         return
 
-    # AGGREGATE BY USERNAME (to be unique)
-    leaderboard = graded_df.groupby('username').agg({
-        'student_name': 'first',      # Keep the display name
-        'project_title': 'count',    # Count projects
-        'instructor_grade': 'mean',   # Average score
-        'likes': lambda x: sum(len(l) if isinstance(l, list) else 0 for l in x) # Sum of all like list lengths
+    # Aggregate by student
+    student_leaderboard = graded_df.groupby('student_name').agg({
+        'project_title': 'count',
+        'instructor_grade': ['mean', 'max'],
+        'likes': lambda x: sum(len(l) if isinstance(l, list) else 0 for l in x)
     }).reset_index()
 
-    leaderboard.columns = ['Username', 'Warrior Name', 'Deployments', 'Avg Score', 'Total Likes']
-    leaderboard['Avg Score'] = leaderboard['Avg Score'].round(1)
+    student_leaderboard.columns = ['Warrior Name', 'Projects', 'Avg Score', 'Best Score', 'Total Likes']
     
-    # Sort by Score then Volume
-    leaderboard = leaderboard.sort_values(by=['Avg Score', 'Deployments'], ascending=False)
+    # Rounding and Type conversion
+    student_leaderboard['Avg Score'] = student_leaderboard['Avg Score'].round(1)
+    student_leaderboard['Best Score'] = student_leaderboard['Best Score'].astype(float)
+
+    # Sorting Logic (Volume -> Quality)
+    student_leaderboard = student_leaderboard.sort_values(
+        by=['Projects', 'Avg Score'], 
+        ascending=[False, False]
+    )
+
+    # Dense Ranking
+    student_leaderboard['Rank'] = student_leaderboard[['Projects', 'Avg Score']].apply(tuple, axis=1).rank(
+        method='dense', 
+        ascending=False
+    ).astype(int)
+
+    student_leaderboard = student_leaderboard.sort_values('Rank')
+
+    if not student_leaderboard.empty:
+        top_warrior = student_leaderboard.iloc[0]
+        st.success(f"🎊 **Current Leader:** {top_warrior['Warrior Name']} | **{top_warrior['Projects']}** Projects | Avg: **{top_warrior['Avg Score']}**")
     
-    # Assign Rank
-    leaderboard['Rank'] = range(1, len(leaderboard) + 1)
+    st.divider()
 
     st.dataframe(
-        leaderboard[['Rank', 'Warrior Name', 'Deployments', 'Avg Score', 'Total Likes']],
+        student_leaderboard[['Rank', 'Warrior Name', 'Projects', 'Avg Score', 'Best Score', 'Total Likes']],
         use_container_width=True,
         hide_index=True,
         column_config={
             "Rank": st.column_config.NumberColumn("Rank", format="%d 🏅"),
-            "Deployments": st.column_config.NumberColumn("Deployments", format="%d 🚀"),
-            "Avg Score": st.column_config.ProgressColumn("Avg Score", min_value=0, max_value=50, format="%.1f"),
+            "Projects": st.column_config.NumberColumn("Deployments", format="%d 🚀"),
+            "Avg Score": st.column_config.ProgressColumn(
+                "Avg Marks",
+                help="Average marks across all graded projects.",
+                format="%.1f",
+                min_value=0,
+                max_value=50,
+            ),
+            "Best Score": st.column_config.NumberColumn("Best Score", format="%.1f"),
             "Total Likes": st.column_config.NumberColumn("Total Likes", format="%d ❤️")
         }
     )
