@@ -14,22 +14,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-hide_streamlit_style()
-
-# Constants
-PROJECTS_DIR = 'uploaded_projects'
-PROFILES_DIR = 'user_profiles'
-DATA_FILE = 'project_db_v2.csv'
-USER_FILE = 'user_db_v2.csv'
-ADMIN_PASS = "@Dm1n-OnE_22-Tree-E1eV@#" 
-
-for folder in [PROJECTS_DIR, PROFILES_DIR]:
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-if 'current_page' not in st.session_state:
-    st.session_state.current_page = "📊 Dashboard"
-
 # --- DATABASE ENGINE ---
 def init_db():
     if not os.path.exists(DATA_FILE):
