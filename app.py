@@ -501,7 +501,7 @@ def page_leaderboard():
         return
 
     # Aggregate by student
-    student_leaderboard = graded_df.groupby('student_name').agg({
+    student_leaderboard = graded_df.groupby('username').agg({
         'project_title': 'count',
         'instructor_grade': ['mean', 'max'],
         'likes': lambda x: sum(len(l) if isinstance(l, list) else 0 for l in x)
