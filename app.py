@@ -113,104 +113,118 @@ def login_user(user, pw):
 # --- SIDEBAR NAV & LOGIN ---
 def sidebar_nav():
     with st.sidebar:
-            
-        # --- IF USER IS LOGGED IN ---
+        # Check if user is logged in
         if 'user' in st.session_state:
-            st.title("Arena Menu")
             u = st.session_state.user
             
-            # --- NOTIFICATION CENTER (NEW) ---
-            notifs = get_my_notifications(u['username'])
-            count = len(notifs)
-            
-            # Determine icon status
-            bell_icon = "🔔" if count > 0 else "🔕"
-            label = f"Notifications ({count})" if count > 0 else "Notifications"
-            
-            with st.popover(f"{bell_icon} {label}", use_container_width=True):
-                if count == 0:
-                    st.caption("No new updates, warrior.")
+            # --- TOP LEVEL TABS FOR SECTIONS ---
+            # Using icons as tab labels for a clean "split" UI
+            tab_menu, tab_profile = st.tabs(["\u2630 Menu", "\U0001F464 Profile"])
+
+            # --- SECTION 1: ARENA MENU (Navigation & Notifications) ---
+            with tab_menu:
+                st.subheader("Arena Menu")
+                
+                # --- NOTIFICATION CENTER ---
+                notifs = get_my_notifications(u['username'])
+                count = len(notifs)
+                bell_icon = "🔔" if count > 0 else "🔕"
+                label = f"Notifications ({count})" if count > 0 else "Notifications"
+                
+                with st.popover(f"{bell_icon} {label}", use_container_width=True):
+                    if count == 0:
+                        st.caption("No new updates, warrior.")
+                    else:
+                        st.write(f"**You have {count} new updates!**")
+                        for n in notifs:
+                            st.info(f"{n['message']}\n\n_{n['timestamp']}_")
+                        
+                        if st.button("Mark all as Read", key="clear_notifs"):
+                            clear_notifications(u['username'])
+                            st.rerun()
+                
+                st.markdown("---")
+
+                # --- NAVIGATION ITEMS ---
+                if u['role'] == "Instructor":
+                    menu_items = [
+                        ("📊 Dashboard", "📊 Dashboard"), 
+                        ("⚔️ Battle Arena", "⚔️ Battle Arena"), 
+                        ("🏆 Leaderboard", "🏆 Leaderboard"),
+                        ("📋 Instructor Table", "📋 Instructor Table")
+                    ]
                 else:
-                    st.write(f"**You have {count} new updates!**")
-                    for n in notifs:
-                        st.info(f"{n['message']}\n\n_{n['timestamp']}_")
-                    
-                    if st.button("Mark all as Read", key="clear_notifs"):
-                        clear_notifications(u['username'])
+                    menu_items = [
+                        ("📊 Dashboard", "📊 Dashboard"), 
+                        ("🚀 Submit Project", "🚀 Submit Project"), 
+                        ("📂 My Projects", "📂 My Projects"), 
+                        ("⚔️ Battle Arena", "⚔️ Battle Arena"), 
+                        ("🏆 Leaderboard", "🏆 Leaderboard")
+                    ]
+
+                for label, page_key in menu_items:
+                    btn_type = "primary" if st.session_state.current_page == page_key else "secondary"
+                    if st.button(label, use_container_width=True, key=f"nav_{page_key}", type=btn_type):
+                        st.session_state.current_page = page_key
                         st.rerun()
 
-            pic = u.get('profile_pic')
-            has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
-            
-            col_img, col_del = st.columns([2, 1])
-            with col_img:
-                if has_custom_pic: st.image(os.path.join(PROFILES_DIR, pic), width=100)
-                else:
-                    icon = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1995/1995531.png"
-                    st.image(icon, width=100)
-            
-            with col_del:
-                if has_custom_pic:
-                    with st.popover("🗑️", help="Remove custom photo"):
-                        st.warning("Delete photo?")
-                        if st.button("Confirm Delete", key="confirm_pic_del", type="primary"):
-                            os.remove(os.path.join(PROFILES_DIR, pic))
-                            udf = load_data("user")
-                            udf.loc[udf['username'] == u['username'], 'profile_pic'] = None
-                            save_data(udf, "user")
-                            st.session_state.user['profile_pic'] = None
-                            st.session_state['uploader_key'] = st.session_state.get('uploader_key', 0) + 1
-                            st.rerun()
-
-            with st.expander("⚙️ Edit Profile"):
-                new_name = st.text_input("Display Name", value=u['full_name'])
-                if st.button("Update Name"):
-                    udf = load_data("user")
-                    udf.loc[udf['username'] == u['username'], 'full_name'] = new_name
-                    save_data(udf, "user")
-                    st.session_state.user['full_name'] = new_name
-                    st.rerun()
+            # --- SECTION 2: USER PROFILE (Profile Management) ---
+            with tab_profile:
+                st.subheader("Warrior Profile")
                 
-                up_key = f"pic_up_{st.session_state.get('uploader_key', 0)}"
-                up_pic = st.file_uploader("Upload Photo", type=['png','jpg','jpeg'], key=up_key)
-                if up_pic:
-                    fname = f"{u['username']}_{int(time.time())}.{up_pic.name.split('.')[-1]}"
-                    with open(os.path.join(PROFILES_DIR, fname), "wb") as f: f.write(up_pic.getbuffer())
-                    udf = load_data("user")
-                    udf.loc[udf['username'] == u['username'], 'profile_pic'] = fname
-                    save_data(udf, "user")
-                    st.session_state.user['profile_pic'] = fname
-                    st.rerun()
+                pic = u.get('profile_pic')
+                has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
+                
+                # Profile Picture Display
+                col_img, col_del = st.columns([2, 1])
+                with col_img:
+                    if has_custom_pic: 
+                        st.image(os.path.join(PROFILES_DIR, pic), width=100)
+                    else:
+                        icon = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1995/1995531.png"
+                        st.image(icon, width=100)
+                
+                with col_del:
+                    if has_custom_pic:
+                        with st.popover("🗑️", help="Remove custom photo"):
+                            st.warning("Delete photo?")
+                            if st.button("Confirm Delete", key="confirm_pic_del", type="primary"):
+                                os.remove(os.path.join(PROFILES_DIR, pic))
+                                udf = load_data("user")
+                                udf.loc[udf['username'] == u['username'], 'profile_pic'] = None
+                                save_data(udf, "user")
+                                st.session_state.user['profile_pic'] = None
+                                st.session_state['uploader_key'] = st.session_state.get('uploader_key', 0) + 1
+                                st.rerun()
 
-            st.write(f"### {u['full_name']}")
-            st.caption(f"🛡️ Role: {u['role']}")
-            
-            if st.button("🚪 Logout", use_container_width=True):
-                st.session_state.clear()
-                st.rerun()
-            
-            st.markdown("---")
-            
-            if u['role'] == "Instructor":
-                menu_items = [
-                    ("📊 Dashboard", "📊 Dashboard"), 
-                    ("⚔️ Battle Arena", "⚔️ Battle Arena"), 
-                    ("🏆 Leaderboard", "🏆 Leaderboard"),
-                    ("📋 Instructor Table", "📋 Instructor Table")
-                ]
-            else:
-                menu_items = [
-                    ("📊 Dashboard", "📊 Dashboard"), 
-                    ("🚀 Submit Project", "🚀 Submit Project"), 
-                    ("📂 My Projects", "📂 My Projects"), 
-                    ("⚔️ Battle Arena", "⚔️ Battle Arena"), 
-                    ("🏆 Leaderboard", "🏆 Leaderboard")
-                ]
+                st.write(f"### {u['full_name']}")
+                st.caption(f"🛡️ Role: {u['role']}")
+                
+                # Edit Profile Section
+                with st.expander("⚙️ Edit Profile"):
+                    new_name = st.text_input("Display Name", value=u['full_name'])
+                    if st.button("Update Name"):
+                        udf = load_data("user")
+                        udf.loc[udf['username'] == u['username'], 'full_name'] = new_name
+                        save_data(udf, "user")
+                        st.session_state.user['full_name'] = new_name
+                        st.rerun()
+                    
+                    up_key = f"pic_up_{st.session_state.get('uploader_key', 0)}"
+                    up_pic = st.file_uploader("Upload Photo", type=['png','jpg','jpeg'], key=up_key)
+                    if up_pic:
+                        fname = f"{u['username']}_{int(time.time())}.{up_pic.name.split('.')[-1]}"
+                        with open(os.path.join(PROFILES_DIR, fname), "wb") as f: 
+                            f.write(up_pic.getbuffer())
+                        udf = load_data("user")
+                        udf.loc[udf['username'] == u['username'], 'profile_pic'] = fname
+                        save_data(udf, "user")
+                        st.session_state.user['profile_pic'] = fname
+                        st.rerun()
 
-            for label, page_key in menu_items:
-                btn_type = "primary" if st.session_state.current_page == page_key else "secondary"
-                if st.button(label, use_container_width=True, key=f"nav_{page_key}", type=btn_type):
-                    st.session_state.current_page = page_key
+                st.markdown("---")
+                if st.button("🚪 Logout", use_container_width=True):
+                    st.session_state.clear()
                     st.rerun()
         
         # --- IF USER IS NOT LOGGED IN (SHOW LOGIN IN SIDEBAR) ---
