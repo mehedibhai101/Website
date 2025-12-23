@@ -133,9 +133,9 @@ def sidebar_nav():
                 if count == 0:
                     st.caption("No new updates, warrior.")
                 else:
-                    st.write(f"**You have {count} new alerts!**")
+                    st.write(f"**You have {count} new updates!**")
                     for n in notifs:
-                        st.info(f"{n['message']}\n\n_Example: {n['timestamp']}_")
+                        st.info(f"{n['message']}\n\n_{n['timestamp']}_")
                     
                     if st.button("Mark all as Read", key="clear_notifs"):
                         clear_notifications(u['username'])
