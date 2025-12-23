@@ -116,10 +116,11 @@ def sidebar_nav():
         if 'user' in st.session_state:
             u = st.session_state.user
             
-            # --- NOTIFICATION LOGIC (Pre-tab to update label) ---
+            # --- NOTIFICATION LOGIC ---
+            # Now explicitly showing (0) even if empty
             notifs = get_my_notifications(u['username'])
             count = len(notifs)
-            notif_label = f"🔔 ({count})" if count > 0 else "🔔"
+            notif_label = f"🔔 ({count})" 
 
             # --- THREE-SECTION TABBED INTERFACE ---
             tab_menu, tab_profile, tab_notif = st.tabs(["☰ Menu", "👤 Profile", notif_label])
@@ -163,7 +164,6 @@ def sidebar_nav():
                         icon = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1995/1995531.png"
                         st.image(icon, width=100)
                 
-                # --- RESTORED DELETE LOGIC ---
                 with col_del:
                     if has_custom_pic:
                         with st.popover("🗑️", help="Remove custom photo"):
@@ -174,7 +174,6 @@ def sidebar_nav():
                                 udf.loc[udf['username'] == u['username'], 'profile_pic'] = None
                                 save_data(udf, "user")
                                 st.session_state.user['profile_pic'] = None
-                                # Reset uploader key to clear the file input UI
                                 st.session_state['uploader_key'] = st.session_state.get('uploader_key', 0) + 1
                                 st.rerun()
 
@@ -211,14 +210,14 @@ def sidebar_nav():
             with tab_notif:
                 st.subheader("Updates")
                 if count == 0:
-                    st.info("No new updates, warrior.")
+                    st.info("No new updates, warrior. You're all caught up!")
                 else:
                     for n in notifs:
                         with st.container(border=True):
                             st.markdown(f"{n['message']}")
                             st.caption(f"🕒 {n['timestamp']}")
                     
-                    if st.button("Mark all as Read", key="clear_notifs_tab", use_container_width=True):
+                    if st.button("Mark all as Read", key="clear_notifs_tab", use_container_width=True, type="primary"):
                         clear_notifications(u['username'])
                         st.rerun()
         
