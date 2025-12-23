@@ -113,8 +113,6 @@ def login_user(user, pw):
 # --- SIDEBAR NAV & LOGIN ---
 def sidebar_nav():
     with st.sidebar:
-        # LOGO & BRANDING
-        st.image("https://cdn-icons-png.flaticon.com/512/2920/2920349.png", width=50)
             
         # --- IF USER IS LOGGED IN ---
         if 'user' in st.session_state:
@@ -140,9 +138,6 @@ def sidebar_nav():
                     if st.button("Mark all as Read", key="clear_notifs"):
                         clear_notifications(u['username'])
                         st.rerun()
-            
-            st.markdown("---")
-            # ---------------------------------
 
             pic = u.get('profile_pic')
             has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
