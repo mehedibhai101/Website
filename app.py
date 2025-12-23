@@ -121,11 +121,10 @@ def sidebar_nav():
             st.title("Arena Menu")
             u = st.session_state.user
             
-            # --- NOTIFICATION CENTER (NEW) ---
+            # --- NOTIFICATION CENTER ---
             notifs = get_my_notifications(u['username'])
             count = len(notifs)
             
-            # Determine icon status
             bell_icon = "🔔" if count > 0 else "🔕"
             label = f"Notifications ({count})" if count > 0 else "Notifications"
             
@@ -142,7 +141,7 @@ def sidebar_nav():
                         st.rerun()
             
             st.markdown("---")
-            # ---------------------------------
+            # ---------------------------
 
             pic = u.get('profile_pic')
             has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
@@ -248,6 +247,20 @@ def sidebar_nav():
                 admin_key = st.text_input("Put Master Key", type="password")
                 if st.button("Unlock Instructor Mode", use_container_width=True):
                     if admin_key == ADMIN_PASS:
+                        # --- FIX: ENSURE ADMIN IS IN THE DATABASE ---
+                        udf = load_data("user")
+                        if "admin" not in udf['username'].values:
+                            new_admin = {
+                                "username": "admin", 
+                                "password": hash_pass(admin_key), 
+                                "full_name": "Lead Instructor", 
+                                "role": "Instructor", 
+                                "profile_pic": None
+                            }
+                            udf = pd.concat([udf, pd.DataFrame([new_admin])], ignore_index=True)
+                            save_data(udf, "user")
+                        # --------------------------------------------
+                        
                         st.session_state.user = {"username": "admin", "full_name": "Lead Instructor", "role": "Instructor", "profile_pic": None}
                         st.session_state.current_page = "📊 Dashboard"
                         st.rerun()
