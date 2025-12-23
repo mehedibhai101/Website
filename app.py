@@ -20,7 +20,7 @@ PROFILES_DIR = 'user_profiles'
 DATA_FILE = 'project_db_v2.csv'
 USER_FILE = 'user_db_v2.csv'
 NOTIF_FILE = 'notification_db.csv' # <--- NEW DB FILE
-ADMIN_PASS = "admin123" 
+ADMIN_PASS = "@Dm1n-OnE_22-Tree-E1eV@#"
 
 for folder in [PROJECTS_DIR, PROFILES_DIR]:
     if not os.path.exists(folder):
