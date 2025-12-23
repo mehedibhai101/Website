@@ -411,10 +411,10 @@ def page_submit():
                 if not instructors.empty:
                     for _, inst in instructors.iterrows():
                         # We pass the username of the instructor to the helper
-                        add_notification(inst['username'], notif_msg)
+                        send_notification(inst['username'], notif_msg)
                 else:
                     # Fallback to hardcoded admin if no one has the role
-                    add_notification("admin", notif_msg)
+                    send_notification("admin", notif_msg)
                 # ---------------------------------------------------------
 
                 st.success("Deployed!"); time.sleep(1)
