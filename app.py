@@ -116,37 +116,18 @@ def sidebar_nav():
         if 'user' in st.session_state:
             u = st.session_state.user
             
-            # --- GLOBAL HEADER (Above Tabs) ---
-            # This section stays visible regardless of which tab is selected
+            # --- NOTIFICATION LOGIC (Pre-tab to update label) ---
             notifs = get_my_notifications(u['username'])
             count = len(notifs)
-            bell_icon = "🔔" if count > 0 else "🔕"
-            
-            col1, col2 = st.columns([1, 1])
-            with col1:
-                # Notification Popover as a compact icon/button
-                with st.popover(f"{bell_icon} ({count})", use_container_width=True):
-                    if count == 0:
-                        st.caption("No new updates, warrior.")
-                    else:
-                        st.write(f"**{count} New Updates**")
-                        for n in notifs:
-                            st.info(f"{n['message']}\n\n_{n['timestamp']}_")
-                        if st.button("Mark all as Read", key="clear_notifs"):
-                            clear_notifications(u['username'])
-                            st.rerun()
-            
-            with col2:
-                # Simple status indicator or Battle ID
-                st.button(f"ID: {u['username'][:5]}...", disabled=True, use_container_width=True)
+            notif_label = f"🔔 ({count})" if count > 0 else "🔔"
 
-            st.markdown("---")
-
-            # --- TOP LEVEL TABS ---
-            tab_menu, tab_profile = st.tabs(["☰ Menu", "👤 Profile"])
+            # --- THREE-SECTION TABBED INTERFACE ---
+            # Splits the sidebar into Menu, Profile, and Notifications
+            tab_menu, tab_profile, tab_notif = st.tabs(["☰ Menu", "👤 Profile", notif_label])
 
             # --- SECTION 1: ARENA MENU ---
             with tab_menu:
+                st.subheader("Arena Navigation")
                 if u['role'] == "Instructor":
                     menu_items = [
                         ("📊 Dashboard", "📊 Dashboard"), 
@@ -171,10 +152,10 @@ def sidebar_nav():
 
             # --- SECTION 2: USER PROFILE ---
             with tab_profile:
+                st.subheader("Warrior Info")
                 pic = u.get('profile_pic')
                 has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
                 
-                # Profile Layout
                 col_img, col_info = st.columns([1, 1])
                 with col_img:
                     if has_custom_pic: 
@@ -187,26 +168,16 @@ def sidebar_nav():
                     st.write(f"**{u['full_name']}**")
                     st.caption(f"🛡️ {u['role']}")
 
-                if has_custom_pic:
-                    if st.button("🗑️ Remove Photo", use_container_width=True):
-                        os.remove(os.path.join(PROFILES_DIR, pic))
-                        udf = load_data("user")
-                        udf.loc[udf['username'] == u['username'], 'profile_pic'] = None
-                        save_data(udf, "user")
-                        st.session_state.user['profile_pic'] = None
-                        st.rerun()
-
-                # Settings
-                with st.expander("⚙️ Account Settings"):
-                    new_name = st.text_input("Change Name", value=u['full_name'])
-                    if st.button("Update"):
+                with st.expander("⚙️ Edit Profile"):
+                    new_name = st.text_input("Display Name", value=u['full_name'])
+                    if st.button("Save Name"):
                         udf = load_data("user")
                         udf.loc[udf['username'] == u['username'], 'full_name'] = new_name
                         save_data(udf, "user")
                         st.session_state.user['full_name'] = new_name
                         st.rerun()
                     
-                    up_pic = st.file_uploader("New Photo", type=['png','jpg','jpeg'], key=f"up_{st.session_state.get('uploader_key', 0)}")
+                    up_pic = st.file_uploader("Change Photo", type=['png','jpg','jpeg'])
                     if up_pic:
                         fname = f"{u['username']}_{int(time.time())}.{up_pic.name.split('.')[-1]}"
                         with open(os.path.join(PROFILES_DIR, fname), "wb") as f: f.write(up_pic.getbuffer())
@@ -217,9 +188,25 @@ def sidebar_nav():
                         st.rerun()
 
                 st.markdown("---")
-                if st.button("🚪 Logout", use_container_width=True, type="primary"):
+                if st.button("🚪 Logout", use_container_width=True):
                     st.session_state.clear()
                     st.rerun()
+
+            # --- SECTION 3: NOTIFICATIONS ---
+            with tab_notif:
+                st.subheader("Updates")
+                if count == 0:
+                    st.info("No new updates, warrior. Stay vigilant!")
+                else:
+                    st.write(f"You have **{count}** unread messages.")
+                    for n in notifs:
+                        with st.container(border=True):
+                            st.markdown(f"{n['message']}")
+                            st.caption(f"🕒 {n['timestamp']}")
+                    
+                    if st.button("Mark all as Read", key="clear_notifs_tab", use_container_width=True, type="primary"):
+                        clear_notifications(u['username'])
+                        st.rerun()
         
         # --- IF USER IS NOT LOGGED IN (SHOW LOGIN IN SIDEBAR) ---
         else:
