@@ -356,7 +356,6 @@ def page_dashboard():
         else:
             st.info("No category data available.")
 
-# --- PAGE: SUBMIT ---
 def page_submit():
     st.title("🚀 Submit Project")
     st.caption("#### Showcase your skills by uploading your latest analysis for review.")
@@ -373,44 +372,56 @@ def page_submit():
         
         if st.form_submit_button("⚔️ Deploy Insight"):
             if title and file:
+                # 1. Save the physical file
                 fname = f"{int(time.time())}_{file.name}"
-                with open(os.path.join(PROJECTS_DIR, fname), "wb") as f: f.write(file.getbuffer())
-                df = load_data()
+                if not os.path.exists(PROJECTS_DIR):
+                    os.makedirs(PROJECTS_DIR)
+                with open(os.path.join(PROJECTS_DIR, fname), "wb") as f: 
+                    f.write(file.getbuffer())
+                
+                # 2. Save Project Data (Explicitly load 'project')
+                df = load_data("project") 
                 new_row = {
-                    "id": int(time.time()), "username": u['username'], "student_name": u['full_name'],
-                    "category": cat, "project_title": title, "description": desc,
-                    "filename": fname, "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "is_private": private, "instructor_grade": None, "instructor_review": "",
+                    "id": int(time.time()), 
+                    "username": u['username'], 
+                    "student_name": u['full_name'],
+                    "category": cat, 
+                    "project_title": title, 
+                    "description": desc,
+                    "filename": fname, 
+                    "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "is_private": private, 
+                    "instructor_grade": None, 
+                    "instructor_review": "",
                     "likes": []
                 }
                 df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                save_data(df)
+                save_data(df, "project") # Added "project" label
                 
                 # ---------------------------------------------------------
-                # ### 🔔 NOTIFY INSTRUCTORS (THE MISSING LOGIC) ###
+                # ### 🔔 NOTIFY INSTRUCTORS ###
                 # ---------------------------------------------------------
-                # Load users to find instructors
                 all_users = load_data("user")
                 
-                # Filter rows where role is 'Instructor'
-                instructors = all_users[all_users['role'] == "Instructor"]
+                # Make sure we compare strings correctly
+                instructors = all_users[all_users['role'].str.strip() == "Instructor"]
                 
-                # Create the message
-                notif_msg = f"🚀 New Submission: Project Submitted by {st.session_state.user['username']}"
+                notif_msg = f"🚀 New Submission: '{title}' by {u['full_name']}"
                 
-                # Loop through every instructor found and send notification
                 if not instructors.empty:
                     for _, inst in instructors.iterrows():
+                        # We pass the username of the instructor to the helper
                         add_notification(inst['username'], notif_msg)
-                        # Optional: Show a toast to the student confirming notification
-                        # st.toast(f"Notified instructor: {inst['username']}")
                 else:
-                    # Fallback: If no instructor found in DB, notify 'admin' explicitly
+                    # Fallback to hardcoded admin if no one has the role
                     add_notification("admin", notif_msg)
                 # ---------------------------------------------------------
 
                 st.success("Deployed!"); time.sleep(1)
-                st.session_state.current_page = "📂 My Projects"; st.rerun()
+                st.session_state.current_page = "📂 My Projects"
+                st.rerun()
+            else:
+                st.error("Please provide both a title and a file!")
 
 # --- PAGE: MY PROJECTS ---
 def page_my_projects():
