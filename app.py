@@ -356,45 +356,83 @@ def page_dashboard():
         else:
             st.info("No category data available.")
 
-# --- PAGE: SUBMIT ---
-def page_submit():
-    st.title("🚀 Submit Project")
-    st.caption("#### Showcase your skills by uploading your latest analysis for review.")
-    st.markdown("#### ")
-    
-    u = st.session_state.user
-    with st.form("up_form", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        cat = col1.selectbox("Category", ["Excel", "Power BI", "Others"])
-        title = col2.text_input("Project Title *")
-        desc = st.text_area("Key Insights / Summary")
-        file = st.file_uploader("Upload File", type=['csv','xlsx','pdf','png','jpg','jpeg'])
-        private = st.checkbox("Instructor Only (Private Submission)")
-        
-        if st.form_submit_button("⚔️ Deploy Insight"):
-            if title and file:
-                fname = f"{int(time.time())}_{file.name}"
-                with open(os.path.join(PROJECTS_DIR, fname), "wb") as f: f.write(file.getbuffer())
-                df = load_data()
-                new_row = {
-                    "id": int(time.time()), "username": u['username'], "student_name": u['full_name'],
-                    "category": cat, "project_title": title, "description": desc,
-                    "filename": fname, "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "is_private": private, "instructor_grade": None, "instructor_review": "",
-                    "likes": []
-                }
-                df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                save_data(df)
-                
-                # --- NOTIFICATION: NOTIFY ALL INSTRUCTORS ---
-                user_df = load_data("user")
-                instructors = user_df[user_df['role'] == "Instructor"]['username'].tolist()
-                for inst in instructors:
-                    send_notification(inst, f"🚀 New Project Alert: '{title}' by {u['full_name']}")
-                # --------------------------------------------
+# --- PAGE: SUBMIT PROJECT ---
+def page_submit_project():
+    st.title("🚀 Submit Your Project")
+    st.markdown("Ready to enter the arena? Fill out the details below.")
 
-                st.success("Deployed!"); time.sleep(1)
-                st.session_state.current_page = "📂 My Projects"; st.rerun()
+    with st.form("submit_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            p_title = st.text_input("Project Title")
+            p_link = st.text_input("Project URL (GitHub/Streamlit/YouTube)")
+        with col2:
+            p_cat = st.selectbox("Category", ["Data Science", "Web Dev", "AI/ML", "Game Dev", "Mobile App"])
+            p_vis = st.radio("Visibility", ["Public 🌍", "Private 🔒"], horizontal=True)
+        
+        p_desc = st.text_area("Description (What makes this cool?)")
+        
+        submitted = st.form_submit_button("Launch Project 🚀")
+        
+        if submitted:
+            if not p_title or not p_link:
+                st.error("Please provide at least a Title and a Link.")
+            else:
+                # 1. SAVE PROJECT
+                df = load_data("project")
+                new_proj = {
+                    "id": len(df) + 1,
+                    "username": st.session_state.user['username'],
+                    "title": p_title,
+                    "category": p_cat,
+                    "link": p_link,
+                    "description": p_desc,
+                    "visibility": "Public" if "Public" in p_vis else "Private",
+                    "votes": 0,
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                }
+                df = pd.concat([df, pd.DataFrame([new_proj])], ignore_index=True)
+                save_data(df, "project")
+                
+                # 2. UPDATE USER STATS (xp, coins)
+                udf = load_data("user")
+                mask = udf['username'] == st.session_state.user['username']
+                # Add 50 XP and 10 Coins for submission
+                cur_xp = udf.loc[mask, 'xp'].values[0]
+                cur_coins = udf.loc[mask, 'coins'].values[0]
+                udf.loc[mask, 'xp'] = int(cur_xp) + 50
+                udf.loc[mask, 'coins'] = int(cur_coins) + 10
+                save_data(udf, "user")
+
+                # Update session state immediately so UI updates
+                st.session_state.user['xp'] = int(cur_xp) + 50
+                st.session_state.user['coins'] = int(cur_coins) + 10
+
+                # ---------------------------------------------------------
+                # ### 🔔 NOTIFY INSTRUCTORS (THE MISSING LOGIC) ###
+                # ---------------------------------------------------------
+                # Load users to find instructors
+                all_users = load_data("user")
+                
+                # Filter rows where role is 'Instructor'
+                instructors = all_users[all_users['role'] == "Instructor"]
+                
+                # Create the message
+                notif_msg = f"🚀 New Submission: '{p_title}' by {st.session_state.user['username']}"
+                
+                # Loop through every instructor found and send notification
+                if not instructors.empty:
+                    for _, inst in instructors.iterrows():
+                        add_notification(inst['username'], notif_msg)
+                        # Optional: Show a toast to the student confirming notification
+                        # st.toast(f"Notified instructor: {inst['username']}")
+                else:
+                    # Fallback: If no instructor found in DB, notify 'admin' explicitly
+                    add_notification("admin", notif_msg)
+                # ---------------------------------------------------------
+
+                st.success(f"Project '{p_title}' submitted successfully! (+50 XP, +10 Coins)")
+                st.balloons()
 
 # --- PAGE: MY PROJECTS ---
 def page_my_projects():
