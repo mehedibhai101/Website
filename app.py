@@ -178,7 +178,7 @@ def sidebar_nav():
                                 st.rerun()
 
                 st.write(f"### {u['full_name']}")
-                st.caption(f"🛡️ Role: {u['role']}")
+                st.caption(f"🛡️ {u['role']}")
 
                 with st.expander("⚙️ Edit Profile"):
                     new_name = st.text_input("Display Name", value=u['full_name'])
@@ -201,7 +201,6 @@ def sidebar_nav():
                         st.session_state.user['profile_pic'] = fname
                         st.rerun()
 
-                st.markdown("---")
                 if st.button("🚪 Logout", use_container_width=True):
                     st.session_state.clear()
                     st.rerun()
