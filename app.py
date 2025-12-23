@@ -209,7 +209,7 @@ def sidebar_nav():
             with tab_notif:
                 st.header("Notifications")
                 if count == 0:
-                    st.info("No new updates, warrior. You're all caught up!")
+                    st.info("No new updates, comrade. You're all caught up!")
                 else:
                     for n in notifs:
                         with st.container(border=True):
