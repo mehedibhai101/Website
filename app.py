@@ -161,7 +161,7 @@ def sidebar_nav():
                     if has_custom_pic: 
                         st.image(os.path.join(PROFILES_DIR, pic), width=100)
                     else:
-                        icon = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1995/1995531.png"
+                        icon = "https://cdn-icons-png.flaticon.com/512/3429/3429433.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1995/1995531.png"
                         st.image(icon, width=100)
                 
                 with col_del:
