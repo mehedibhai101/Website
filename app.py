@@ -396,7 +396,7 @@ def page_submit():
                 instructors = all_users[all_users['role'] == "Instructor"]
                 
                 # Create the message
-                notif_msg = f"🚀 New Submission: '{p_title}' by {st.session_state.user['username']}"
+                notif_msg = f"🚀 New Submission: Project Submitted by {st.session_state.user['username']}"
                 
                 # Loop through every instructor found and send notification
                 if not instructors.empty:
