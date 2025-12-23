@@ -357,7 +357,7 @@ def page_dashboard():
             st.info("No category data available.")
 
 # --- PAGE: SUBMIT PROJECT ---
-def page_submit_project():
+def page_submit():
     st.title("🚀 Submit Your Project")
     st.markdown("Ready to enter the arena? Fill out the details below.")
 
