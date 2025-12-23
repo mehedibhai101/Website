@@ -19,6 +19,7 @@ PROJECTS_DIR = 'uploaded_projects'
 PROFILES_DIR = 'user_profiles'
 DATA_FILE = 'project_db_v2.csv'
 USER_FILE = 'user_db_v2.csv'
+NOTIF_FILE = 'notification_db.csv' # <--- NEW DB FILE
 ADMIN_PASS = "@Dm1n-OnE_22-Tree-E1eV@#" 
 
 for folder in [PROJECTS_DIR, PROFILES_DIR]:
@@ -30,6 +31,7 @@ if 'current_page' not in st.session_state:
 
 # --- DATABASE ENGINE ---
 def init_db():
+    # Projects DB
     if not os.path.exists(DATA_FILE):
         df = pd.DataFrame(columns=[
             "id", "username", "student_name", "category", "project_title", "description",
@@ -37,12 +39,20 @@ def init_db():
             "likes", "comments"
         ])
         df.to_csv(DATA_FILE, index=False)
+    # Users DB
     if not os.path.exists(USER_FILE):
         df = pd.DataFrame(columns=["username", "password", "full_name", "role", "profile_pic"])
         df.to_csv(USER_FILE, index=False)
+    # Notifications DB (NEW)
+    if not os.path.exists(NOTIF_FILE):
+        df = pd.DataFrame(columns=["recipient", "message", "timestamp", "is_read"])
+        df.to_csv(NOTIF_FILE, index=False)
 
 def load_data(file="project"):
-    path = DATA_FILE if file == "project" else USER_FILE
+    if file == "project": path = DATA_FILE
+    elif file == "user": path = USER_FILE
+    else: path = NOTIF_FILE # Handle notification load
+    
     try:
         df = pd.read_csv(path)
         if file == "project":
@@ -51,8 +61,38 @@ def load_data(file="project"):
     except: return pd.DataFrame()
 
 def save_data(df, file="project"):
-    path = DATA_FILE if file == "project" else USER_FILE
+    if file == "project": path = DATA_FILE
+    elif file == "user": path = USER_FILE
+    else: path = NOTIF_FILE
     df.to_csv(path, index=False)
+
+# --- NOTIFICATION LOGIC (NEW) ---
+def send_notification(recipient_username, message):
+    """Adds a new notification to the database."""
+    ndf = load_data("notification")
+    new_notif = {
+        "recipient": recipient_username,
+        "message": message,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "is_read": False
+    }
+    ndf = pd.concat([ndf, pd.DataFrame([new_notif])], ignore_index=True)
+    save_data(ndf, "notification")
+
+def get_my_notifications(username):
+    """Fetches unread notifications for the sidebar."""
+    ndf = load_data("notification")
+    if ndf.empty: return []
+    # Filter for this user and unread status
+    my_notifs = ndf[(ndf['recipient'] == username) & (ndf['is_read'] == False)]
+    return my_notifs.to_dict('records')
+
+def clear_notifications(username):
+    """Marks all notifications as read for the user."""
+    ndf = load_data("notification")
+    if not ndf.empty:
+        ndf.loc[ndf['recipient'] == username, 'is_read'] = True
+        save_data(ndf, "notification")
 
 # --- AUTHENTICATION ---
 def hash_pass(password): return hashlib.sha256(password.encode()).hexdigest()
@@ -80,6 +120,30 @@ def sidebar_nav():
         if 'user' in st.session_state:
             st.title("Arena Menu")
             u = st.session_state.user
+            
+            # --- NOTIFICATION CENTER (NEW) ---
+            notifs = get_my_notifications(u['username'])
+            count = len(notifs)
+            
+            # Determine icon status
+            bell_icon = "🔔" if count > 0 else "🔕"
+            label = f"Notifications ({count})" if count > 0 else "Notifications"
+            
+            with st.popover(f"{bell_icon} {label}", use_container_width=True):
+                if count == 0:
+                    st.caption("No new updates, warrior.")
+                else:
+                    st.write(f"**You have {count} new alerts!**")
+                    for n in notifs:
+                        st.info(f"{n['message']}\n\n_Example: {n['timestamp']}_")
+                    
+                    if st.button("Mark all as Read", key="clear_notifs"):
+                        clear_notifications(u['username'])
+                        st.rerun()
+            
+            st.markdown("---")
+            # ---------------------------------
+
             pic = u.get('profile_pic')
             has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
             
@@ -308,6 +372,14 @@ def page_submit():
                 }
                 df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
                 save_data(df)
+                
+                # --- NOTIFICATION: NOTIFY ALL INSTRUCTORS ---
+                user_df = load_data("user")
+                instructors = user_df[user_df['role'] == "Instructor"]['username'].tolist()
+                for inst in instructors:
+                    send_notification(inst, f"🚀 New Project Alert: '{title}' by {u['full_name']}")
+                # --------------------------------------------
+
                 st.success("Deployed!"); time.sleep(1)
                 st.session_state.current_page = "📂 My Projects"; st.rerun()
 
@@ -463,8 +535,15 @@ def page_arena():
                 likes = row['likes'] if isinstance(row['likes'], list) else []
                 liked = u['username'] in likes
                 if st.button(f"{'❤️' if liked else '🤍'} {len(likes)} Likes", key=f"l_{row['id']}"):
-                    if liked: likes.remove(u['username'])
-                    else: likes.append(u['username'])
+                    if liked: 
+                        likes.remove(u['username'])
+                    else: 
+                        likes.append(u['username'])
+                        # --- NOTIFY PROJECT OWNER (IF NOT SELF) ---
+                        if row['username'] != u['username']:
+                            send_notification(row['username'], f"❤️ {u['full_name']} liked your project: '{row['project_title']}'")
+                        # ------------------------------------------
+
                     df.at[idx, 'likes'] = likes 
                     save_data(df); st.rerun()
 
@@ -477,7 +556,14 @@ def page_arena():
                     if st.form_submit_button("Post Comment") and new_cmt_text:
                         all_cmts.append({"user": u['full_name'], "text": new_cmt_text, "time": datetime.now().strftime("%b %d, %H:%M")})
                         df.at[idx, 'comments'] = str(all_cmts)
-                        save_data(df); st.rerun()
+                        save_data(df)
+                        
+                        # --- NOTIFY PROJECT OWNER (IF NOT SELF) ---
+                        if row['username'] != u['username']:
+                            send_notification(row['username'], f"💬 {u['full_name']} commented on: '{row['project_title']}'")
+                        # ------------------------------------------
+                        
+                        st.rerun()
 
                 for c in all_cmts:
                     with st.chat_message("user"):
@@ -492,7 +578,13 @@ def page_arena():
                     if st.button("Submit Grade", key=f"s_{row['id']}"):
                         df.at[idx, 'instructor_grade'] = ng
                         df.at[idx, 'instructor_review'] = nr
-                        save_data(df); st.toast("Grade Saved!"); st.rerun()
+                        save_data(df)
+                        
+                        # --- NOTIFY STUDENT ---
+                        send_notification(row['username'], f"👨‍🏫 Your project '{row['project_title']}' has been graded! Score: {ng}/50")
+                        # ----------------------
+
+                        st.toast("Grade Saved!"); st.rerun()
                 else:
                     st.info(row['instructor_review'] if row['instructor_review'] else "No instructor feedback yet.")
 
