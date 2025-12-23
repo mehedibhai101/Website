@@ -152,7 +152,7 @@ def sidebar_nav():
 
             # --- SECTION 2: USER PROFILE ---
             with tab_profile:
-                st.subheader("Warrior Info")
+                st.header("Warrior Info")
                 pic = u.get('profile_pic')
                 has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
                 
@@ -208,7 +208,7 @@ def sidebar_nav():
 
             # --- SECTION 3: NOTIFICATIONS ---
             with tab_notif:
-                st.subheader("Updates")
+                st.header("Notifications")
                 if count == 0:
                     st.info("No new updates, warrior. You're all caught up!")
                 else:
