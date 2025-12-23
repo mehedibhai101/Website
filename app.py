@@ -121,10 +121,11 @@ def sidebar_nav():
             st.title("Arena Menu")
             u = st.session_state.user
             
-            # --- NOTIFICATION CENTER ---
+            # --- NOTIFICATION CENTER (NEW) ---
             notifs = get_my_notifications(u['username'])
             count = len(notifs)
             
+            # Determine icon status
             bell_icon = "🔔" if count > 0 else "🔕"
             label = f"Notifications ({count})" if count > 0 else "Notifications"
             
@@ -141,7 +142,7 @@ def sidebar_nav():
                         st.rerun()
             
             st.markdown("---")
-            # ---------------------------
+            # ---------------------------------
 
             pic = u.get('profile_pic')
             has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
@@ -247,20 +248,6 @@ def sidebar_nav():
                 admin_key = st.text_input("Put Master Key", type="password")
                 if st.button("Unlock Instructor Mode", use_container_width=True):
                     if admin_key == ADMIN_PASS:
-                        # --- FIX: ENSURE ADMIN IS IN THE DATABASE ---
-                        udf = load_data("user")
-                        if "admin" not in udf['username'].values:
-                            new_admin = {
-                                "username": "admin", 
-                                "password": hash_pass(admin_key), 
-                                "full_name": "Lead Instructor", 
-                                "role": "Instructor", 
-                                "profile_pic": None
-                            }
-                            udf = pd.concat([udf, pd.DataFrame([new_admin])], ignore_index=True)
-                            save_data(udf, "user")
-                        # --------------------------------------------
-                        
                         st.session_state.user = {"username": "admin", "full_name": "Lead Instructor", "role": "Instructor", "profile_pic": None}
                         st.session_state.current_page = "📊 Dashboard"
                         st.rerun()
@@ -356,6 +343,7 @@ def page_dashboard():
         else:
             st.info("No category data available.")
 
+# --- PAGE: SUBMIT ---
 def page_submit():
     st.title("🚀 Submit Project")
     st.caption("#### Showcase your skills by uploading your latest analysis for review.")
@@ -372,56 +360,28 @@ def page_submit():
         
         if st.form_submit_button("⚔️ Deploy Insight"):
             if title and file:
-                # 1. Save the physical file
                 fname = f"{int(time.time())}_{file.name}"
-                if not os.path.exists(PROJECTS_DIR):
-                    os.makedirs(PROJECTS_DIR)
-                with open(os.path.join(PROJECTS_DIR, fname), "wb") as f: 
-                    f.write(file.getbuffer())
-                
-                # 2. Save Project Data (Explicitly load 'project')
-                df = load_data("project") 
+                with open(os.path.join(PROJECTS_DIR, fname), "wb") as f: f.write(file.getbuffer())
+                df = load_data()
                 new_row = {
-                    "id": int(time.time()), 
-                    "username": u['username'], 
-                    "student_name": u['full_name'],
-                    "category": cat, 
-                    "project_title": title, 
-                    "description": desc,
-                    "filename": fname, 
-                    "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                    "is_private": private, 
-                    "instructor_grade": None, 
-                    "instructor_review": "",
+                    "id": int(time.time()), "username": u['username'], "student_name": u['full_name'],
+                    "category": cat, "project_title": title, "description": desc,
+                    "filename": fname, "upload_time": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "is_private": private, "instructor_grade": None, "instructor_review": "",
                     "likes": []
                 }
                 df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
-                save_data(df, "project") # Added "project" label
+                save_data(df)
                 
-                # ---------------------------------------------------------
-                # ### 🔔 NOTIFY INSTRUCTORS ###
-                # ---------------------------------------------------------
-                all_users = load_data("user")
-                
-                # Make sure we compare strings correctly
-                instructors = all_users[all_users['role'].str.strip() == "Instructor"]
-                
-                notif_msg = f"🚀 New Submission: '{title}' by {u['full_name']}"
-                
-                if not instructors.empty:
-                    for _, inst in instructors.iterrows():
-                        # We pass the username of the instructor to the helper
-                        send_notification(inst['username'], notif_msg)
-                else:
-                    # Fallback to hardcoded admin if no one has the role
-                    send_notification("admin", notif_msg)
-                # ---------------------------------------------------------
+                # --- NOTIFICATION: NOTIFY ALL INSTRUCTORS ---
+                user_df = load_data("user")
+                instructors = user_df[user_df['role'] == "Instructor"]['username'].tolist()
+                for inst in instructors:
+                    send_notification(inst, f"🚀 New Project Alert: '{title}' by {u['full_name']}")
+                # --------------------------------------------
 
                 st.success("Deployed!"); time.sleep(1)
-                st.session_state.current_page = "📂 My Projects"
-                st.rerun()
-            else:
-                st.error("Please provide both a title and a file!")
+                st.session_state.current_page = "📂 My Projects"; st.rerun()
 
 # --- PAGE: MY PROJECTS ---
 def page_my_projects():
