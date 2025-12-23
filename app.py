@@ -122,7 +122,6 @@ def sidebar_nav():
             notif_label = f"🔔 ({count})" if count > 0 else "🔔"
 
             # --- THREE-SECTION TABBED INTERFACE ---
-            # Splits the sidebar into Menu, Profile, and Notifications
             tab_menu, tab_profile, tab_notif = st.tabs(["☰ Menu", "👤 Profile", notif_label])
 
             # --- SECTION 1: ARENA MENU ---
@@ -156,31 +155,47 @@ def sidebar_nav():
                 pic = u.get('profile_pic')
                 has_custom_pic = pic and isinstance(pic, str) and os.path.exists(os.path.join(PROFILES_DIR, pic))
                 
-                col_img, col_info = st.columns([1, 1])
+                col_img, col_del = st.columns([2, 1])
                 with col_img:
                     if has_custom_pic: 
-                        st.image(os.path.join(PROFILES_DIR, pic), width=80)
+                        st.image(os.path.join(PROFILES_DIR, pic), width=100)
                     else:
                         icon = "https://cdn-icons-png.flaticon.com/512/1077/1077114.png" if u['role'] == "Instructor" else "https://cdn-icons-png.flaticon.com/512/1995/1995531.png"
-                        st.image(icon, width=80)
+                        st.image(icon, width=100)
                 
-                with col_info:
-                    st.write(f"**{u['full_name']}**")
-                    st.caption(f"🛡️ {u['role']}")
+                # --- RESTORED DELETE LOGIC ---
+                with col_del:
+                    if has_custom_pic:
+                        with st.popover("🗑️", help="Remove custom photo"):
+                            st.warning("Delete photo?")
+                            if st.button("Confirm Delete", key="confirm_pic_del", type="primary"):
+                                os.remove(os.path.join(PROFILES_DIR, pic))
+                                udf = load_data("user")
+                                udf.loc[udf['username'] == u['username'], 'profile_pic'] = None
+                                save_data(udf, "user")
+                                st.session_state.user['profile_pic'] = None
+                                # Reset uploader key to clear the file input UI
+                                st.session_state['uploader_key'] = st.session_state.get('uploader_key', 0) + 1
+                                st.rerun()
+
+                st.write(f"### {u['full_name']}")
+                st.caption(f"🛡️ Role: {u['role']}")
 
                 with st.expander("⚙️ Edit Profile"):
                     new_name = st.text_input("Display Name", value=u['full_name'])
-                    if st.button("Save Name"):
+                    if st.button("Update Name"):
                         udf = load_data("user")
                         udf.loc[udf['username'] == u['username'], 'full_name'] = new_name
                         save_data(udf, "user")
                         st.session_state.user['full_name'] = new_name
                         st.rerun()
                     
-                    up_pic = st.file_uploader("Change Photo", type=['png','jpg','jpeg'])
+                    up_key = f"pic_up_{st.session_state.get('uploader_key', 0)}"
+                    up_pic = st.file_uploader("Upload New Photo", type=['png','jpg','jpeg'], key=up_key)
                     if up_pic:
                         fname = f"{u['username']}_{int(time.time())}.{up_pic.name.split('.')[-1]}"
-                        with open(os.path.join(PROFILES_DIR, fname), "wb") as f: f.write(up_pic.getbuffer())
+                        with open(os.path.join(PROFILES_DIR, fname), "wb") as f: 
+                            f.write(up_pic.getbuffer())
                         udf = load_data("user")
                         udf.loc[udf['username'] == u['username'], 'profile_pic'] = fname
                         save_data(udf, "user")
@@ -196,15 +211,14 @@ def sidebar_nav():
             with tab_notif:
                 st.subheader("Updates")
                 if count == 0:
-                    st.info("No new updates, warrior. Stay vigilant!")
+                    st.info("No new updates, warrior.")
                 else:
-                    st.write(f"You have **{count}** unread messages.")
                     for n in notifs:
                         with st.container(border=True):
                             st.markdown(f"{n['message']}")
                             st.caption(f"🕒 {n['timestamp']}")
                     
-                    if st.button("Mark all as Read", key="clear_notifs_tab", use_container_width=True, type="primary"):
+                    if st.button("Mark all as Read", key="clear_notifs_tab", use_container_width=True):
                         clear_notifications(u['username'])
                         st.rerun()
         
