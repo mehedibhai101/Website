@@ -36,8 +36,7 @@ def init_db():
         df = pd.DataFrame(columns=[
             "id", "username", "student_name", "category", "project_title", "description",
             "filename", "upload_time", "is_private", "instructor_grade", "instructor_review", 
-            "likes", "comments"
-        ])
+            "likes", "comments"])
         df.to_csv(DATA_FILE, index=False)
     # Users DB
     if not os.path.exists(USER_FILE):
@@ -411,10 +410,10 @@ def page_submit():
                 if not instructors.empty:
                     for _, inst in instructors.iterrows():
                         # We pass the username of the instructor to the helper
-                        send_notification(inst['username'], notif_msg)
+                        add_notification(inst['username'], notif_msg)
                 else:
                     # Fallback to hardcoded admin if no one has the role
-                    send_notification("admin", notif_msg)
+                    add_notification("admin", notif_msg)
                 # ---------------------------------------------------------
 
                 st.success("Deployed!"); time.sleep(1)
@@ -702,4 +701,4 @@ def page_leaderboard():
 
 # --- PAGE: INSTRUCTOR CONTROL ---
 def page_instructor_table():
-    if st.session_state.user['role
+    if st.session_state.user['role']
