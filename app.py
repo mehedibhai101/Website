@@ -1,11 +1,11 @@
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import os
 import time
 import hashlib
 from datetime import datetime
 import ast
-from streamlit_autorefresh import st_autorefresh
 
 # --- CONFIGURATION & SETUP ---
 st.set_page_config(
@@ -14,7 +14,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-st_autorefresh(interval=600000, key="fizzbuzz_keepalive")
+st_autorefresh(interval=600000, key="fizzbuzz")
 
 # Constants
 PROJECTS_DIR = 'uploaded_projects'
