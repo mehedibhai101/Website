@@ -1,0 +1,18 @@
+name: Keep App Awake
+on:
+  schedule:
+    - cron: '0 */10 * * *' # Runs every 10 hours
+  workflow_dispatch: # Allows you to run it manually
+
+jobs:
+  keep_awake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Empty Commit
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit --allow-empty -m "Keeping the app awake"
+          git push
