@@ -474,7 +474,16 @@ def page_my_projects():
                     st.write(row['description'])
                 path = os.path.join(PROJECTS_DIR, row['filename'])
                 if os.path.exists(path):
-                    st.image(path, use_container_width=True)
+                    file_path = os.path.join(PROJECTS_DIR, row['filename'])
+                    file_ext = row['filename'].split('.')[-1].lower()
+                    
+                    # ONLY use st.image if the file is actually an image
+                    if file_ext in ['jpg', 'jpeg', 'png']:
+                        if os.path.exists(file_path):
+                            st.image(file_path, use_container_width=True)
+                    else:
+                        # If it's Excel/CSV/PDF, show an icon instead of crashing
+                        st.info(f"📄 Preview not available for {file_ext.upper()} files.")
             with t2:
                 raw_comments = row['comments']
                 all_cmts = [] if pd.isna(raw_comments) or raw_comments == "" or raw_comments == "[]" else ast.literal_eval(str(raw_comments))
