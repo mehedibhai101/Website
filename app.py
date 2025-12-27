@@ -730,7 +730,7 @@ if 'user' in st.session_state:
     # Security: Ensure Instructor cannot access student pages
     if pg == "📊 Dashboard": page_dashboard()
     elif pg == "🚀 Submit Project" and u_role != "Instructor": page_submit()
-    elif pg == "📂 My Projects" and u_role != "Instructor": page_my_projects()
+    elif pg == "📂 My Projects": page_my_projects()
     elif pg == "⚔️ Battle Arena": page_arena()
     elif pg == "🏆 Leaderboard": page_leaderboard()
     elif pg == "📋 Instructor Table" and u_role == "Instructor": page_instructor_table()
