@@ -470,12 +470,12 @@ def page_my_projects():
 
             t1, t2, t3 = st.tabs(["📄 Details", "💬 Feedback & Comments", "👨‍🏫 Assessment"])
             with t1:
-                with st.expander("📖 View Project Description"):
-                    st.write(row['description'])
+                with st.expander("📖 View Project Description"): st.write(row['description'])
                 path = os.path.join(PROJECTS_DIR, row['filename'])
                 if os.path.exists(path):
                     ext = row['filename'].lower().split('.')[-1]
                     if ext in ['png', 'jpg', 'jpeg']: st.image(path, use_container_width=True)
+                    st.download_button("📥 Download", open(path, "rb"), file_name=row['filename'], key=f"dl_{row['id']}")
             with t2:
                 raw_comments = row['comments']
                 all_cmts = [] if pd.isna(raw_comments) or raw_comments == "" or raw_comments == "[]" else ast.literal_eval(str(raw_comments))
@@ -730,7 +730,7 @@ if 'user' in st.session_state:
     # Security: Ensure Instructor cannot access student pages
     if pg == "📊 Dashboard": page_dashboard()
     elif pg == "🚀 Submit Project" and u_role != "Instructor": page_submit()
-    elif pg == "📂 My Projects": page_my_projects()
+    elif pg == "📂 My Projects" and u_role != "Instructor": page_my_projects()
     elif pg == "⚔️ Battle Arena": page_arena()
     elif pg == "🏆 Leaderboard": page_leaderboard()
     elif pg == "📋 Instructor Table" and u_role == "Instructor": page_instructor_table()
