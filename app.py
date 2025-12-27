@@ -474,16 +474,28 @@ def page_my_projects():
                     st.write(row['description'])
                 path = os.path.join(PROJECTS_DIR, row['filename'])
                 if os.path.exists(path):
+                    # --- FIND THIS SECTION IN page_my_projects ---
+
+                    # 1. First, identify the file type
                     file_path = os.path.join(PROJECTS_DIR, row['filename'])
                     file_ext = row['filename'].split('.')[-1].lower()
                     
-                    # ONLY use st.image if the file is actually an image
-                    if file_ext in ['jpg', 'jpeg', 'png']:
-                        if os.path.exists(file_path):
-                            st.image(file_path, use_container_width=True)
-                    else:
-                        # If it's Excel/CSV/PDF, show an icon instead of crashing
-                        st.info(f"📄 Preview not available for {file_ext.upper()} files.")
+                    # 2. Replace the old st.image line with this safety check
+                    with st.expander("📄 View File & Feedback"):
+                        if file_ext in ['png', 'jpg', 'jpeg']:
+                            if os.path.exists(file_path):
+                                # This line caused the crash; now it only runs for images
+                                st.image(file_path, use_container_width=True) 
+                        else:
+                            # This handles Excel, CSV, or PDF files safely
+                            st.info(f"💡 Preview not available for {file_ext.upper()} files.")
+                            with open(file_path, "rb") as f:
+                                st.download_button(
+                                    label=f"📥 Download {row['project_title']}",
+                                    data=f,
+                                    file_name=row['filename'],
+                                    mime="application/octet-stream"
+                                )
             with t2:
                 raw_comments = row['comments']
                 all_cmts = [] if pd.isna(raw_comments) or raw_comments == "" or raw_comments == "[]" else ast.literal_eval(str(raw_comments))
