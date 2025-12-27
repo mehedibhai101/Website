@@ -475,7 +475,7 @@ def page_my_projects():
                 if os.path.exists(path):
                     ext = row['filename'].lower().split('.')[-1]
                     if ext in ['png', 'jpg', 'jpeg']: st.image(path, use_container_width=True)
-                    st.download_button("📥 Download", open(path, "rb"), file_name=row['filename'], key=f"dl_{row['id']}")
+
             with t2:
                 raw_comments = row['comments']
                 all_cmts = [] if pd.isna(raw_comments) or raw_comments == "" or raw_comments == "[]" else ast.literal_eval(str(raw_comments))
