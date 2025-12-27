@@ -474,28 +474,8 @@ def page_my_projects():
                     st.write(row['description'])
                 path = os.path.join(PROJECTS_DIR, row['filename'])
                 if os.path.exists(path):
-                    # --- FIND THIS SECTION IN page_my_projects ---
-
-                    # 1. First, identify the file type
-                    file_path = os.path.join(PROJECTS_DIR, row['filename'])
-                    file_ext = row['filename'].split('.')[-1].lower()
-                    
-                    # 2. Replace the old st.image line with this safety check
-                    with st.expander("📄 View File & Feedback"):
-                        if file_ext in ['png', 'jpg', 'jpeg']:
-                            if os.path.exists(file_path):
-                                # This line caused the crash; now it only runs for images
-                                st.image(file_path, use_container_width=True) 
-                        else:
-                            # This handles Excel, CSV, or PDF files safely
-                            st.info(f"💡 Preview not available for {file_ext.upper()} files.")
-                            with open(file_path, "rb") as f:
-                                st.download_button(
-                                    label=f"📥 Download {row['project_title']}",
-                                    data=f,
-                                    file_name=row['filename'],
-                                    mime="application/octet-stream"
-                                )
+                    ext = row['filename'].lower().split('.')[-1]
+                    if ext in ['png', 'jpg', 'jpeg']: st.image(path, use_container_width=True)
             with t2:
                 raw_comments = row['comments']
                 all_cmts = [] if pd.isna(raw_comments) or raw_comments == "" or raw_comments == "[]" else ast.literal_eval(str(raw_comments))
