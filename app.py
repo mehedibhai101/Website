@@ -359,7 +359,7 @@ def page_submit():
         cat = col1.selectbox("Category", ["Excel", "Power BI", "Others"])
         title = col2.text_input("Project Title *")
         desc = st.text_area("Key Insights / Summary")
-        file = st.file_uploader("Upload File", type=['csv','xlsx','pdf','png','jpg','jpeg'])
+        file = st.file_uploader("Upload File", type=['csv','xlsx','pdf','png','jpg','xlms','pbix','rar','zip','pptx','docx'])
         private = st.checkbox("Instructor Only (Private Submission)")
         
         if st.form_submit_button("⚔️ Deploy Insight"):
